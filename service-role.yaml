@@ -1,0 +1,34 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: IAM service role for cloud formation
+Metadata:
+  Author: VaultDB.ai
+  Url: https://vaultdb.ai
+Resources:
+  ServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: vaultdb_cloudformation_service_role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          -
+            Effect: 'Allow'
+            Principal:
+              Service:
+                - 'cloudformation.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: vaultdb_cloudformation_vaultdb_resources
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:*'
+                  - 'cloudformation:*'
+                  - 'lambda:*'
+                Resource: "*"
+Outputs:
+  ServiceRoleARN:
+    Value: !GetAtt ServiceRole.Arn
