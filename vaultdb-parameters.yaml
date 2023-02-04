@@ -1,0 +1,90 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  s3 to store VaultDB data permanently.
+Parameters:
+  VPCState:
+    Type: String
+    AllowedValues:
+      - new
+      - existing
+    ConstraintDescription: Must state whether there is an existing VPC or not
+  Name:
+    Type: String
+    Description: >-
+      The name of the application. 
+      This should include a stage qualifier if this is a nonproduction instance.
+      Stage qualifiers should only include 3-5 characters
+    AllowedPattern: ^[a-z]{3,}(-[a-z]{3,5})?$
+    MinLength: 3
+  Domain:
+    Type: String
+    Default: app
+    AllowedValues:
+      - example.com
+      - otherdomain.com
+    Description: The domain for the application.
+  SigningKeyParameter:
+    Type: 'AWS::SSM::Parameter::Name<String>'
+    Default: /system/signing-key/default
+    Description: >-
+      The name of SSM parameter from which to retrieve the cookie signing key
+    AllowedValues:
+      - /system/signing-key/default
+  SigningKeyParameterKeyId:
+    Type: String
+    Description: >-
+      The ID of the KMS key used to encrypt signing key in SSM Parameter Store.
+  PrimarySubnetAZ:
+    Type: AWS::EC2::AvailabilityZone::Name
+    Description: Enter the primary availability zone for your subnet.
+  FailoverSubnetAZ:
+    Type: AWS::EC2::AvailabilityZone::Name
+    Description: Enter the Failover availability zone for your subnet. Please Choose .
+  CloudFrontHostedZoneId:
+    Type: String
+    Default: Z2FDTNDATAQYW2
+    AllowedValues:
+      - Z2FDTNDATAQYW2
+    Description: >-
+      The Default Hosted Zone for CloudFront Distributions
+    
+Conditions:
+  IsNewVPC: !Equals [ !Ref VPCState, new ]
+  CreateFailoverSubnets: !Not [!Equals [!Ref FailoverSubnetAZ, ""]]
+
+Rules:
+  DRandProdCanNotBeSame:
+    Assertions:
+      - AssertDescription: Primary and Failover availability zone cannot be Same
+        Assert: !Not
+          - !Ref PrimarySubnetAZ
+          - !Ref FailoverSubnetAZ
+
+Metadata:
+  Author: VaultDB.ai
+  Url: https://vaultdb.ai
+  'AWS::CloudFormation::Interface':
+    ParameterGroups:
+      - Label: 
+          default: Authentication
+        Parameters: 
+          - ClientId
+          - SigningKeyParameter
+      - Label: 
+          default: Application Domain
+        Parameters:
+          - Name
+          - Domain
+      - Label:
+          default: System
+        Parameters:
+          - VPCState
+          - PrimarySubnetAZ
+          - FailoverSubnetAZ
+          - CloudFrontHostedZoneId
+    ParameterLabels:
+      SigningKeyParameter:
+        default: Signing Key Parameter
+      CloudFrontHostedZoneId:
+        default: CloudFront Hosted Zone ID
+  
