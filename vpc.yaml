@@ -1,0 +1,161 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: VPC Nested stack
+Metadata:
+  Author: VaultDB.ai
+  Url: https://vaultdb.ai
+Parameters:
+  ApplicationName:
+    Type: String
+    Description: Enter the name of your application with no spaces.
+  PrimarySubnetAZ:
+    Type: AWS::EC2::AvailabilityZone::Name
+    Description: Enter the primary availability zone for your subnet.
+  FailoverSubnetAZ:
+    Type: AWS::EC2::AvailabilityZone::Name
+    Description: Enter the Failover availability zone for your subnet. Please Choose .
+  VPCState:
+    Type: String
+    AllowedValues:
+      - new
+      - existing
+    ConstraintDescription: Must state whether there is an existing VPC or not
+
+Conditions:
+  IsNewVPC: !Equals [!Ref VPCState, new]
+  CreateFailoverSubnets: !Not [!Equals [!Ref FailoverSubnetAZ, ""]]
+
+Rules:
+  DRandProdCanNotBeSame:
+    Assertions:
+      - AssertDescription: Primary and Failover availability zone cannot be Same
+        Assert: !Not
+          - !Ref PrimarySubnetAZ
+          - !Ref FailoverSubnetAZ
+
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Condition: IsNewVPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: 
+            !Join
+              - ""
+              - - !Ref ApplicationName
+                - '-vpc'
+
+  VPCPrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.20.0/24
+      AvailabilityZone: !Ref PrimarySubnetAZ
+      Tags:
+        - Key: Name
+          Value:
+            !Join
+              - ""
+              - - !Ref ApplicationName
+                - '-private-subnet'
+
+  VPCPublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.10.0/24
+      AvailabilityZone: !Ref PrimarySubnetAZ
+      Tags:
+        - Key: Name
+          Value:
+            !Join
+              - ""
+              - - !Ref ApplicationName
+                - '-public-subnet'
+
+  VPCPrivateSubnetB:
+    Type: AWS::EC2::Subnet
+    Condition: CreateFailoverSubnets
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.20.0/24
+      AvailabilityZone: !Ref FailoverSubnetAZ
+      Tags:
+        - Key: Name
+          Value: 
+            !Join
+              - ""
+              - - !Ref ApplicationName
+                - '-private-FailOver-subnet'
+
+  VPCPublicSubnetB:
+    Type: AWS::EC2::Subnet
+    Condition: CreateFailoverSubnets
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.10.0/24
+      AvailabilityZone: !Ref FailoverSubnetAZ
+      Tags:
+        - Key: Name
+          Value: 
+            !Join
+              - ""
+              - - !Ref ApplicationName
+                - '-public-FailOver-subnet'
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Join [_, [!Ref 'AWS::StackName']]
+
+  GatewayToInternet:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${ApplicationName}-vpc Public Routes
+
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: GatewayToInternet
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  SubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref VPCPublicSubnetA
+
+  SubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: CreateFailoverSubnets
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref VPCPublicSubnetB
+
+Outputs:
+  VPCId:
+    Value: !Ref VPC
+  PrivateSubnetA:
+    Value: !Ref VPCPrivateSubnetA
+  PublicSubnetA:
+    Value: !Ref VPCPublicSubnetA
+  PrivateSubnetB:
+    Value: !Ref VPCPrivateSubnetB
+  PublicSubnetB:
+    Value: !Ref VPCPublicSubnetB
