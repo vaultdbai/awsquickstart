@@ -1,0 +1,41 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: IAM VaultDB Execute Services role
+Metadata:
+  Author: VaultDB.ai
+  Url: https://vaultdb.ai
+Resources:
+  ExecuteRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: vaultdb_execute_service_role
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          -
+            Effect: 'Allow'
+            Principal:
+              Service:
+                - 'lambda.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+          -
+            Effect: 'Allow'
+            Principal:
+              Service:
+                - 'ecs-tasks.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: vaultdb_execute_service_resources
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:*'
+                  - 'lambda:*'
+                  - 'ecr:*'
+                Resource: "*"
+Outputs:
+  ExecuteRoleARN:
+    Value: !GetAtt ExecuteRole.Arn

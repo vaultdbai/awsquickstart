@@ -60,31 +60,52 @@ Rules:
           - !Ref PrimarySubnetAZ
           - !Ref FailoverSubnetAZ
 
-Metadata:
-  Author: VaultDB.ai
-  Url: https://vaultdb.ai
-  'AWS::CloudFormation::Interface':
-    ParameterGroups:
-      - Label: 
-          default: Authentication
-        Parameters: 
-          - ClientId
-          - SigningKeyParameter
-      - Label: 
-          default: Application Domain
-        Parameters:
-          - Name
-          - Domain
-      - Label:
-          default: System
-        Parameters:
-          - VPCState
-          - PrimarySubnetAZ
-          - FailoverSubnetAZ
-          - CloudFrontHostedZoneId
-    ParameterLabels:
-      SigningKeyParameter:
-        default: Signing Key Parameter
-      CloudFrontHostedZoneId:
-        default: CloudFront Hosted Zone ID
-  
+Resources:
+  VPCStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL:
+        !Join
+          - ''
+          - - 'https://s3.amazonaws.com/'
+            - !Ref BucketName
+            - '/vpc.yaml'
+      Parameters:
+        ApplicationName: !Ref ApplicationName
+        SubnetAZ: !Ref SubnetAZ
+  EFSStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL:
+        !Join
+          - ''
+          - - 'https://s3.amazonaws.com/'
+            - !Ref BucketName
+            - '/efs.yaml'
+      Parameters:
+        ApplicationName: !Ref ApplicationName
+        SubnetAZ: !Ref SubnetAZ
+  DataStoreStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL:
+        !Join
+          - ''
+          - - 'https://s3.amazonaws.com/'
+            - !Ref BucketName
+            - '/s3-data-store.yaml'
+      Parameters:
+        ApplicationName: !Ref ApplicationName
+        SubnetAZ: !Ref SubnetAZ        
+  PublicStorageStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL:
+        !Join
+          - ''
+          - - 'https://s3.amazonaws.com/'
+            - !Ref BucketName
+            - '/s3-public-storage.yaml'
+      Parameters:
+        ApplicationName: !Ref ApplicationName
+        SubnetAZ: !Ref SubnetAZ

@@ -1,0 +1,34 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: IAM service role for cloud formation
+Resources:
+  VaultDBUserRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Sub '${RuleName}-Role'
+      Path: "/"     
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal: !Sub 'arn:aws:iam::${AccountID}:user/*'
+          Action: sts:AssumeRole      
+  VaultDBUserRolePolicies:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      ManagedPolicyName: !Sub '${RuleName}-RolePolicies'
+      Roles:
+        - Ref: "VaultDBUserRole"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:       
+        - Effect: Allow
+          Action:
+          - s3:Get*
+          - s3:Put*
+          - s3:List*
+          - s3:AbortMultipartUpload       
+          Resource:
+          - !Ref Bucket
+Outputs:
+  VaultDBUserRoleARN:
+    Value: !GetAtt Role.Arn
