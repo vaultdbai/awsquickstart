@@ -25,9 +25,12 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - 's3:*'
-                  - 'cloudformation:*'
-                  - 'lambda:*'
+                  - 'cloudformation:CreateStack'
+                  - 'cloudformation:DescribeStacks'
+                  - 'cloudformation:DeleteStack'
+                  - 'cloudformation:DescribeStackEvents'
+                  - 'cloudformation:UpdateStack'
+                  - 'iam:PassRole'
                 Resource: "*"
 Outputs:
   ServiceRoleARN:

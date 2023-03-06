@@ -1,13 +1,56 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create EFS volume to store commit log
+
+Parameters:
+  ApplicationName:
+    Type: String
+    AllowedPattern: "^[a-z][a-z0-9-]{0,48}[a-z0-9]$"
+    Description: Enter the name of your application with no spaces.
+
+  VPCStackName:
+    Type: String
+    AllowedPattern: "^[a-z][a-z0-9-]{0,48}[a-z0-9]$"
+
+Metadata:
+  Author: VaultDB.ai
+  Url: https://vaultdb.ai
+  AWS::CloudFormation::Interface: 
+    ParameterGroups: 
+      - 
+        Label: 
+          default: "Required Parameters"
+        Parameters: 
+          - ApplicationName
+          - VPCStackName
+
+    ParameterLabels:
+      ApplicationName: 
+        default: "What are you calling this App(Please Include dev/test/prod in name to diffrentiate between instance)?"
+      VPCStackName: 
+        default: "What was the name of VPC stack (you should configure network, if not created yet)?"
+
+Rules:
+  ApplicationNameIsRequired:
+    Assertions:
+      - AssertDescription: Application Name is required
+        Assert: !Equals [!Ref ApplicationName, '']
+
+  VPCStackNameIsRequired:
+    Assertions:
+      - AssertDescription: VPC Stack name is required
+        Assert: !Equals [!Ref VPCStackName, '']
+
 Resources:
     EFSSecurityGroup:
         Type: "AWS::EC2::SecurityGroup"
         Properties:
             GroupDescription: "security group for the prod EFS"
-            GroupName: "test-EFS-SG"
-            VpcId: !Ref VPC
+            GroupName: !Join ['', [!Ref ApplicationName, '-vaultdb', "-EFS-SG"]]
+            VpcId:
+              Fn::ImportValue: !Sub "${VPCStackName}-VPC"
             SecurityGroupIngress: 
               - 
-                SourceSecurityGroupId: sg-ID
+                SourceSecurityGroupId: !Join ['', [!Ref ApplicationName, '-vaultdb', "-sg-ID"]]
                 Description: "servers to connect to efs"
                 FromPort: 2049
                 IpProtocol: "tcp"
@@ -15,16 +58,16 @@ Resources:
             Tags:
               - 
                 Key: Environment
-                Value: prod
+                Value: !Ref ApplicationName
               - 
                 Key: Name
-                Value: test-VPC-EFS-SG
+                Value: !Join ['', [!Ref ApplicationName, '-vaultdb', "-VPC-EFS-SG"]]
               - 
                 Key: Project
-                Value: test-blog
+                Value: !Ref ApplicationName
               - 
                 Key: createdBy
-                Value: Maureen Barasa
+                Value: vaultdb.ai
 
     EFSFileSystem:
         Type: AWS::EFS::FileSystem
@@ -35,31 +78,42 @@ Resources:
             LifecyclePolicies:
               - TransitionToIA: AFTER_60_DAYS
             PerformanceMode: generalPurpose
-            Encrypted: true
             ThroughputMode: bursting
             FileSystemTags: 
               - 
                 Key: Environment
-                Value: test
+                Value: !Ref ApplicationName
               - 
                 Key: Name
-                Value: test-VPC-EFS
+                Value: !Join ['', [!Ref ApplicationName, '-vaultdb', "-VPC-EFS"]]
               - 
                 Key: Project
-                Value: test-blog
+                Value: !Ref ApplicationName
               - 
                 Key: createdBy
-                Value: Maureen Barasa
+                Value: vaultdb.ai
 
     MountTarget1:
         Type: AWS::EFS::MountTarget
         Properties: 
             FileSystemId: !Ref EFSFileSystem
-            IpAddress: *.*.*.*
+            IpAddress: "*.*.*.*"
             SecurityGroups: 
               - !Ref EFSSecurityGroup
-            SubnetId: !Ref SubnetID1
+            SubnetId: 
+              Fn::ImportValue: !Sub "${VPCStackName}-VPCPrivateSubnetA"
 
+    EFSInterfaceEndpoint:
+        Type: 'AWS::EC2::VPCEndpoint'
+        Properties:
+            VpcEndpointType: Interface
+            ServiceName: !Sub 'com.amazonaws.${AWS::Region}.elasticfilesystem'
+            VpcId:
+              Fn::ImportValue: !Sub "${VPCStackName}-VPC"
+            SubnetIds: 
+              Fn::ImportValue: !Sub "${VPCStackName}-VPCPrivateSubnetA"
+            SecurityGroupIds:
+              - !Ref EFSSecurityGroup
 Outputs:
   EFS:
     Description: The created EFS 
