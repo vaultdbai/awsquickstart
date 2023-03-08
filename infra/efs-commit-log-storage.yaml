@@ -33,12 +33,12 @@ Rules:
   ApplicationNameIsRequired:
     Assertions:
       - AssertDescription: Application Name is required
-        Assert: !Equals [!Ref ApplicationName, '']
+        Assert: !Not [!Equals [!Ref ApplicationName, '']]
 
   VPCStackNameIsRequired:
     Assertions:
       - AssertDescription: VPC Stack name is required
-        Assert: !Equals [!Ref VPCStackName, '']
+        Assert: !Not [!Equals [!Ref VPCStackName, '']]
 
 Resources:
     EFSSecurityGroup:
@@ -50,7 +50,7 @@ Resources:
               Fn::ImportValue: !Sub "${VPCStackName}-VPC"
             SecurityGroupIngress: 
               - 
-                SourceSecurityGroupId: !Join ['', [!Ref ApplicationName, '-vaultdb', "-sg-ID"]]
+                SourceSecurityGroupId: !Join ['', ['sg-', !Ref ApplicationName, 'vaultdb']]
                 Description: "servers to connect to efs"
                 FromPort: 2049
                 IpProtocol: "tcp"

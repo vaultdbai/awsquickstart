@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Create secure S3 bucket to store data
+Description: VaultDB Create secure S3 bucket to store data
 
 Parameters:
   ApplicationName:
@@ -33,12 +33,12 @@ Rules:
   ApplicationNameIsRequired:
     Assertions:
       - AssertDescription: Application Name is required
-        Assert: !Equals [!Ref ApplicationName, '']
+        Assert: !Not [!Equals [!Ref ApplicationName, '']]
 
   VPCStackNameIsRequired:
     Assertions:
       - AssertDescription: VPC Stack name is required
-        Assert: !Equals [!Ref VPCStackName, '']
+        Assert: !Not [!Equals [!Ref VPCStackName, '']]
 
 Resources:  
   AccessLogBucket:
@@ -56,7 +56,33 @@ Resources:
               SSEAlgorithm: AES256
       LoggingConfiguration:
         DestinationBucketName: !Ref AccessLogBucket
-        LogFilePrefix: "data-store-logs"
+        LogFilePrefix: Join ['', [!Ref ApplicationName, '-vaultdb', '-data-store-logs']]
+
+  PublicBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      BucketName: !Join ['', [!Ref ApplicationName, '-vaultdb', '-public-storage']]
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LoggingConfiguration:
+        DestinationBucketName: !Ref AccessLogBucket
+        LogFilePrefix: Join ['', [!Ref ApplicationName, '-vaultdb', '-public-storage-logs']]
+
+  PublicBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PublicBucket
+      PolicyDocument:
+        Id: PublicReadPolicy
+        Version: 2012-10-17
+        Statement:
+          - Sid: PublicReadForGetBucketObjects
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Sub arn:aws:s3:::${PublicBucket}/*
 
   S3GatewayEndpoint:
     Type: 'AWS::EC2::VPCEndpoint'
@@ -67,14 +93,15 @@ Resources:
           - Effect: Allow
             Principal: '*'
             Action:
-              - 's3:GetObject'
+              - 's3:*'
             Resource:
               - !Ref DataBucket
+              - !Ref PublicBucket
       ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'
-      VpcId: 
-        Fn::ImportValue: !Sub '${VPCStackName}-VPC'
-      SubnetIds: 
-        Fn::ImportValue: !Sub '${VPCStackName}-VPCPrivateSubnetA'
+      VpcId:
+        Fn::ImportValue: !Sub "${VPCStackName}-VPC"
+      RouteTableIds:
+        - Fn::ImportValue: !Sub "${VPCStackName}-PrivateRouteTable"
 
 Outputs:
   DataBucketName:
