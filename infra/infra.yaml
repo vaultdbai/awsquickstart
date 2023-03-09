@@ -1,6 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: >
-  s3 to store VaultDB data permanently.
+Description: VaultDB Infrstructure.
 Parameters:
   VPCState:
     Type: String
@@ -8,60 +7,66 @@ Parameters:
       - new
       - existing
     ConstraintDescription: Must state whether there is an existing VPC or not
-  Name:
-    Type: String
-    Description: >-
-      The name of the application. 
-      This should include a stage qualifier if this is a nonproduction instance.
-      Stage qualifiers should only include 3-5 characters
-    AllowedPattern: ^[a-z]{3,}(-[a-z]{3,5})?$
-    MinLength: 3
-  Domain:
-    Type: String
-    Default: app
-    AllowedValues:
-      - example.com
-      - otherdomain.com
-    Description: The domain for the application.
-  SigningKeyParameter:
-    Type: 'AWS::SSM::Parameter::Name<String>'
-    Default: /system/signing-key/default
-    Description: >-
-      The name of SSM parameter from which to retrieve the cookie signing key
-    AllowedValues:
-      - /system/signing-key/default
-  SigningKeyParameterKeyId:
-    Type: String
-    Description: >-
-      The ID of the KMS key used to encrypt signing key in SSM Parameter Store.
+
   PrimarySubnetAZ:
     Type: AWS::EC2::AvailabilityZone::Name
+    AllowedPattern: ".+"
     Description: Enter the primary availability zone for your subnet.
-  FailoverSubnetAZ:
-    Type: AWS::EC2::AvailabilityZone::Name
-    Description: Enter the Failover availability zone for your subnet. Please Choose .
-  CloudFrontHostedZoneId:
+
+  PublicSubnetCIDR:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    # Default: 10.0.10.0/24
+    Description: VPC CIDR Block for the Public Subnet (eg 10.0.10.0/24)
     Type: String
-    Default: Z2FDTNDATAQYW2
-    AllowedValues:
-      - Z2FDTNDATAQYW2
-    Description: >-
-      The Default Hosted Zone for CloudFront Distributions
+
+  PrivateSubnetCIDR:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    # Default: 10.0.20.0/24
+    Description: VPC CIDR Block for the Public Subnet (eg 10.0.20.0/24)
+    Type: String    
+
+  CidrBlock:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    # Default: 10.0.0.0/16
+    Description: VPC CIDR Block (eg 10.0.0.0/16)
+    Type: String
     
+  ExistingVPC:
+    Type: AWS::EC2::VPC::Id
+    ConstraintDescription: Please Choose existing VPC to use existing    
+
+  BucketName:
+    Type: String
+    Default: 'vaultdb-hosted-content'
+    Description: Vaultdb Cloudformation template store. Please do not change unless you have custom templates.
+
 Conditions:
   IsNewVPC: !Equals [ !Ref VPCState, new ]
-  CreateFailoverSubnets: !Not [!Equals [!Ref FailoverSubnetAZ, ""]]
+  UseExistingVPC: !Equals [ !Ref VPCState, existing ]
 
 Rules:
-  DRandProdCanNotBeSame:
+  RequiredParameterAssertions:
     Assertions:
-      - AssertDescription: Primary and Failover availability zone cannot be Same
-        Assert: !Not
-          - !Ref PrimarySubnetAZ
-          - !Ref FailoverSubnetAZ
+      - AssertDescription: VPCState is required
+        Assert: !Not [!Equals [!Ref VPCState, '']]
+      - AssertDescription: Primary Subnet is required
+        Assert: !Not [!Equals [!Ref PrimarySubnetAZ, '']]
+      - AssertDescription: Primary Subnet is cannot be empty
+        Assert: !Not [!Equals [!Ref PrimarySubnetAZ, '']]
+      - AssertDescription: CidrBlock is required
+        Assert: !Not [!Equals [!Ref CidrBlock, '']]
+      - AssertDescription: Public Subnet CIDR is required
+        Assert: !Not [!Equals [!Ref PublicSubnetCIDR, '']]
+      - AssertDescription: Private Subnet CIDR is required
+        Assert: !Not [!Equals [!Ref PrivateSubnetCIDR, '']]
+
+Mappings:
+ constants:
+  VaultDbBucket:
+   Name: "test"
 
 Resources:
-  VPCStack:
+  NewVPCStack:
     Type: AWS::CloudFormation::Stack
     Condition: IsNewVPC
     Properties:
@@ -70,10 +75,29 @@ Resources:
           - ''
           - - 'https://s3.amazonaws.com/'
             - !Ref BucketName
-            - '/vpc.yaml'
+            - '/awsquickstart/infra/vpc-new.yaml'
       Parameters:
-        ApplicationName: !Ref ApplicationName
-        SubnetAZ: !Ref SubnetAZ
+        PrimarySubnetAZ: !Ref PrimarySubnetAZ
+        PublicSubnetCIDR: !Ref PublicSubnetCIDR
+        PrivateSubnetCIDR: !Ref PrivateSubnetCIDR
+        CidrBlock: !Ref CidrBlock
+        
+  ExistingVPCStack:
+    Type: AWS::CloudFormation::Stack
+    Condition: UseExistingVPC
+    Properties:
+      TemplateURL:
+        !Join
+          - ''
+          - - 'https://s3.amazonaws.com/'
+            - !Ref BucketName
+            - '/awsquickstart/infra/vpc-existing.yaml'
+      Parameters:
+        PrimarySubnetAZ: !Ref PrimarySubnetAZ
+        PublicSubnetCIDR: !Ref PublicSubnetCIDR
+        PrivateSubnetCIDR: !Ref PrivateSubnetCIDR
+        ExistingVPC: !Ref ExistingVPC
+
   EFSStack:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -82,10 +106,11 @@ Resources:
           - ''
           - - 'https://s3.amazonaws.com/'
             - !Ref BucketName
-            - '/efs.yaml'
+            - '/awsquickstart/infra/efs-commit-log-storage.yaml'
       Parameters:
-        ApplicationName: !Ref ApplicationName
-        SubnetAZ: !Ref SubnetAZ
+        ApplicationName: !Ref AWS::StackName
+        VPCStackName: !If [ IsNewVPC, !Ref NewVPCStack, !Ref ExistingVPCStack ]
+
   DataStoreStack:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -94,19 +119,7 @@ Resources:
           - ''
           - - 'https://s3.amazonaws.com/'
             - !Ref BucketName
-            - '/s3-data-store.yaml'
+            - '/awsquickstart/infra/s3-data-store.yaml'
       Parameters:
-        ApplicationName: !Ref ApplicationName
-        SubnetAZ: !Ref SubnetAZ        
-  PublicStorageStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL:
-        !Join
-          - ''
-          - - 'https://s3.amazonaws.com/'
-            - !Ref BucketName
-            - '/s3-public-storage.yaml'
-      Parameters:
-        ApplicationName: !Ref ApplicationName
-        SubnetAZ: !Ref SubnetAZ
+        ApplicationName: !Ref AWS::StackName
+        VPCStackName: !If [ IsNewVPC, !Ref NewVPCStack, !Ref ExistingVPCStack ]

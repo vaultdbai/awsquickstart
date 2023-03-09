@@ -98,7 +98,7 @@ Resources:
               - !Ref DataBucket
               - !Ref PublicBucket
       ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'
-      VpcId:
+      VpcId: 
         Fn::ImportValue: !Sub "${VPCStackName}-VPC"
       RouteTableIds:
         - Fn::ImportValue: !Sub "${VPCStackName}-PrivateRouteTable"
@@ -107,6 +107,15 @@ Outputs:
   DataBucketName:
     Description: Name of the main bucket
     Value: !Ref DataBucket
+    Export:
+      Name: !Sub ${VPCStackName}-DataBucket
+  PulicBucketName:
+    Description: Name of the public bucket
+    Value: !Ref PublicBucket
+    Export:
+      Name: !Sub ${VPCStackName}-PublicBucket
   LogBucketName:
     Description: Name of the access log bucket
     Value: !Ref AccessLogBucket
+    Export:
+      Name: !Sub ${VPCStackName}-AccessLogBucket

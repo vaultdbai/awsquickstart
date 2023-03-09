@@ -45,29 +45,31 @@ Resources:
         Type: "AWS::EC2::SecurityGroup"
         Properties:
             GroupDescription: "security group for the prod EFS"
-            GroupName: !Join ['', [!Ref ApplicationName, '-vaultdb', "-EFS-SG"]]
+            GroupName: !Join ['', [!Ref ApplicationName, '-vaultdb', '-EFS-SG']]
             VpcId:
-              Fn::ImportValue: !Sub "${VPCStackName}-VPC"
-            SecurityGroupIngress: 
-              - 
-                SourceSecurityGroupId: !Join ['', ['sg-', !Ref ApplicationName, 'vaultdb']]
-                Description: "servers to connect to efs"
-                FromPort: 2049
-                IpProtocol: "tcp"
-                ToPort: 2049
+              Fn::ImportValue: !Sub '${VPCStackName}-VPC'
             Tags:
               - 
                 Key: Environment
                 Value: !Ref ApplicationName
               - 
                 Key: Name
-                Value: !Join ['', [!Ref ApplicationName, '-vaultdb', "-VPC-EFS-SG"]]
+                Value: !Join ['', [!Ref ApplicationName, '-vaultdb', '-VPC-EFS-SG']]
               - 
                 Key: Project
                 Value: !Ref ApplicationName
               - 
                 Key: createdBy
                 Value: vaultdb.ai
+
+    EFSSecurityGroupIngress:
+      Type: AWS::EC2::SecurityGroupIngress
+      Properties:
+          Description: "Allow EFS to connect to servers and lambda"
+          GroupId: !Ref EFSSecurityGroup
+          FromPort: 2049
+          IpProtocol: "tcp"
+          ToPort: 2049
 
     EFSFileSystem:
         Type: AWS::EFS::FileSystem
@@ -85,7 +87,7 @@ Resources:
                 Value: !Ref ApplicationName
               - 
                 Key: Name
-                Value: !Join ['', [!Ref ApplicationName, '-vaultdb', "-VPC-EFS"]]
+                Value: !Join ['', [!Ref ApplicationName, '-vaultdb', '-VPC-EFS']]
               - 
                 Key: Project
                 Value: !Ref ApplicationName
@@ -93,15 +95,14 @@ Resources:
                 Key: createdBy
                 Value: vaultdb.ai
 
-    MountTarget1:
+    EFSMountTarget:
         Type: AWS::EFS::MountTarget
         Properties: 
             FileSystemId: !Ref EFSFileSystem
-            IpAddress: "*.*.*.*"
             SecurityGroups: 
               - !Ref EFSSecurityGroup
             SubnetId: 
-              Fn::ImportValue: !Sub "${VPCStackName}-VPCPrivateSubnetA"
+              Fn::ImportValue: !Sub '${VPCStackName}-VPCPrivateSubnet'
 
     EFSInterfaceEndpoint:
         Type: 'AWS::EC2::VPCEndpoint'
@@ -109,16 +110,19 @@ Resources:
             VpcEndpointType: Interface
             ServiceName: !Sub 'com.amazonaws.${AWS::Region}.elasticfilesystem'
             VpcId:
-              Fn::ImportValue: !Sub "${VPCStackName}-VPC"
+              Fn::ImportValue: !Sub '${VPCStackName}-VPC'
             SubnetIds: 
-              Fn::ImportValue: !Sub "${VPCStackName}-VPCPrivateSubnetA"
+              - Fn::ImportValue: !Sub '${VPCStackName}-VPCPrivateSubnet'
             SecurityGroupIds:
               - !Ref EFSSecurityGroup
 Outputs:
   EFS:
     Description: The created EFS 
     Value: !Ref EFSFileSystem
-
-  EFSMountTarget1:
-    Description: The EFS MountTarget1
-    Value: !Ref MountTarget1
+    Export:
+      Name: !Sub ${VPCStackName}-EFSFileSystem
+  EFSMountTarget:
+    Description: The EFS EFSMountTarget
+    Value: !Ref EFSMountTarget
+    Export:
+      Name: !Sub ${VPCStackName}-EFSMountTarget

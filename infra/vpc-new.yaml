@@ -1,0 +1,167 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: VPC Nested stack
+Metadata:
+  Author: VaultDB.ai
+  Url: https://vaultdb.ai
+  AWS::CloudFormation::Interface: 
+    ParameterGroups: 
+      - 
+        Label: 
+          default: "Networking Configuration"
+        Parameters: 
+          - PrimarySubnetAZ
+          - CidrBlock
+          - PublicSubnetCIDR
+          - PrivateSubnetCIDR
+
+    ParameterLabels:
+      PrimarySubnetAZ: 
+        default: "What is your Primary Region?"
+
+Parameters:
+  PrimarySubnetAZ:
+    Type: AWS::EC2::AvailabilityZone::Name
+    AllowedPattern: ".+"
+    Description: Enter the primary availability zone for your subnet.
+  PublicSubnetCIDR:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    # Default: 10.0.10.0/24
+    Description: VPC CIDR Block for the Public Subnet (eg 10.0.10.0/24)
+    Type: String
+  PrivateSubnetCIDR:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    # Default: 10.0.20.0/24
+    Description: VPC CIDR Block for the Public Subnet (eg 10.0.20.0/24)
+    Type: String    
+  CidrBlock:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    # Default: 10.0.0.0/16
+    Description: VPC CIDR Block (eg 10.0.0.0/16)
+    Type: String
+
+Rules:
+  PrimarySubnetIsRequired:
+    Assertions:
+      - AssertDescription: Primary Subnet is required
+        Assert: !Not [!Equals [!Ref PrimarySubnetAZ, AWS::NoValue]]
+      - AssertDescription: Primary Subnet is cannot be empty
+        Assert: !Not [!Equals [!Ref PrimarySubnetAZ, '']]
+      - AssertDescription: CidrBlock is required
+        Assert: !Not [!Equals [!Ref CidrBlock, '']]
+      - AssertDescription: Public Subnet CIDR is required
+        Assert: !Not [!Equals [!Ref PublicSubnetCIDR, '']]
+      - AssertDescription: Private Subnet CIDR is required
+        Assert: !Not [!Equals [!Ref PrivateSubnetCIDR, '']]
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref CidrBlock
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Join ['', [!Ref AWS::StackName, '-vaultdb', '-vpc']]
+
+  VPCPrivateSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnetCIDR
+      AvailabilityZone: !Ref PrimarySubnetAZ
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref AWS::StackName
+              - '-vaultdb-private-subnet'
+
+  VPCPublicSubnetA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC 
+      CidrBlock: !Ref PublicSubnetCIDR
+      AvailabilityZone: !Ref PrimarySubnetAZ
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref AWS::StackName
+              - '-vaultdb-public-subnet'
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Join ['', [!Ref AWS::StackName, '-vaultdb', '-InternetGateway']]
+
+  GatewayToInternet:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC 
+      InternetGatewayId: !Ref InternetGateway
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC 
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref AWS::StackName
+              - '-vaultdb-vpc-Public-Routes'
+
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: GatewayToInternet
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref VPCPublicSubnetA
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC 
+      Tags:
+        - Key: Name
+          Value: !Join
+            - ''
+            - - !Ref AWS::StackName
+              - '-vaultdb-vpc-Private-Routes'
+
+  PrivateSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref VPCPrivateSubnetA
+
+Outputs:
+  VPC:
+    Value: !Ref VPC 
+    Export:
+      Name: !Sub '${AWS::StackName}-VPC'
+  PrivateSubnet:
+    Value: !Ref VPCPrivateSubnetA
+    Export:
+      Name: !Sub ${AWS::StackName}-VPCPrivateSubnet
+  PublicSubnet:
+    Value: !Ref VPCPublicSubnetA
+    Export:
+      Name: !Sub ${AWS::StackName}-VPCPublicSubnet
+  PrivateRouteTable:
+    Value: !Ref PrivateRouteTable
+    Export:
+      Name: !Sub ${AWS::StackName}-PrivateRouteTable
+  PublicRouteTable:
+    Value: !Ref PublicRouteTable
+    Export:
+      Name: !Sub ${AWS::StackName}-PublicRouteTable
