@@ -1,18 +1,20 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: VaultDB Infrstructure.
 Parameters:
-  VPCState:
-    Type: String
-    AllowedValues:
-      - new
-      - existing
-    ConstraintDescription: Must state whether there is an existing VPC or not
-
   PrimarySubnetAZ:
     Type: AWS::EC2::AvailabilityZone::Name
     AllowedPattern: ".+"
     Description: Enter the primary availability zone for your subnet.
 
+  ExistingVpcID:
+    Type: String
+    Default: ''
+    ConstraintDescription: Please enter existing VPC ID to use existing.
+
+  CidrBlock:
+    Description: VPC CIDR Block If Creating new (eg 10.0.0.0/16)
+    Type: String
+    
   PublicSubnetCIDR:
     AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
     Default: 10.0.10.0/24
@@ -24,16 +26,6 @@ Parameters:
     Default: 10.0.20.0/24
     Description: VPC CIDR Block for the Public Subnet (eg 10.0.20.0/24)
     Type: String    
-
-  CidrBlock:
-    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
-    Default: 10.0.0.0/16
-    Description: VPC CIDR Block (eg 10.0.0.0/16)
-    Type: String
-    
-  ExistingVPC:
-    Type: AWS::EC2::VPC::Id
-    ConstraintDescription: Please Choose existing VPC to use existing    
 
   BucketName:
     Type: String
@@ -49,29 +41,32 @@ Metadata:
         Label: 
           default: "Required Parameters"
         Parameters: 
-          - VPCState
           - PrimarySubnetAZ
-          - ExistingVPC
+          - ExistingVpcID
+          - CidrBlock
           - BucketName
         
 Conditions:
-  IsNewVPC: !Equals [ !Ref VPCState, new ]
+  IsNewVPC: !Equals [ !Ref ExistingVpcID, '' ]
 
 Rules:
   RequiredParameterAssertions:
     Assertions:
-      - AssertDescription: VPCState is required
-        Assert: !Not [!Equals [!Ref VPCState, '']]
       - AssertDescription: Primary Subnet is required
         Assert: !Not [!Equals [!Ref PrimarySubnetAZ, '']]
       - AssertDescription: Primary Subnet is cannot be empty
         Assert: !Not [!Equals [!Ref PrimarySubnetAZ, '']]
-      - AssertDescription: CidrBlock is required
-        Assert: !Not [!Equals [!Ref CidrBlock, '']]
       - AssertDescription: Public Subnet CIDR is required
         Assert: !Not [!Equals [!Ref PublicSubnetCIDR, '']]
       - AssertDescription: Private Subnet CIDR is required
         Assert: !Not [!Equals [!Ref PrivateSubnetCIDR, '']]
+  CreateNewVPC:
+    RuleCondition: !Equals 
+      - !Ref ExistingVpcID
+      - ''
+    Assertions:        
+      - AssertDescription: CidrBlock is required
+        Assert: !Not [!Equals [!Ref CidrBlock, '']]
 
 Resources:
   VPCStack:
@@ -85,8 +80,7 @@ Resources:
             - '/awsquickstart/infra/vpc.yaml'
       Parameters:
         ApplicationName: !Ref AWS::StackName
-        VPCState: !Ref VPCState
-        ExistingVPC: !Ref ExistingVPC
+        ExistingVpcID: !Ref ExistingVpcID
         CidrBlock: !Ref CidrBlock
         
   NetworkingStack:
@@ -104,7 +98,6 @@ Resources:
         PrimarySubnetAZ: !Ref PrimarySubnetAZ
         PublicSubnetCIDR: !Ref PublicSubnetCIDR
         PrivateSubnetCIDR: !Ref PrivateSubnetCIDR
-        VPCState: !Ref VPCState
 
   EFSStack:
     Type: AWS::CloudFormation::Stack

@@ -37,12 +37,6 @@ Parameters:
     # Default: 10.0.20.0/24
     Description: VPC CIDR Block for the Public Subnet (eg 10.0.20.0/24)
     Type: String    
-  VPCState:
-    Type: String
-    AllowedValues:
-      - new
-      - existing
-    ConstraintDescription: Must state whether there is an existing VPC or not
 
 Rules:
   PrimarySubnetIsRequired:
