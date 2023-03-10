@@ -9,18 +9,20 @@ Metadata:
         Label: 
           default: "Networking Configuration"
         Parameters: 
-          - ExistingVPC          
+          - ApplicationName
           - PrimarySubnetAZ
           - PublicSubnetCIDR
           - PrivateSubnetCIDR
 
     ParameterLabels:
-      ExistingVPC: 
-        default: "Which VPC would you like to use?"
       PrimarySubnetAZ: 
         default: "What is your Primary Region?"
 
 Parameters:
+  ApplicationName:
+    Type: String
+    AllowedPattern: "^[a-z][a-z0-9-]{0,48}[a-z0-9]$"
+    Description: Enter the name of your application with no spaces.
   PrimarySubnetAZ:
     Type: AWS::EC2::AvailabilityZone::Name
     AllowedPattern: ".+"
@@ -35,9 +37,12 @@ Parameters:
     # Default: 10.0.20.0/24
     Description: VPC CIDR Block for the Public Subnet (eg 10.0.20.0/24)
     Type: String    
-  ExistingVPC:
-    Type: AWS::EC2::VPC::Id
-    ConstraintDescription: Please Choose existing VPC to use existing    
+  VPCState:
+    Type: String
+    AllowedValues:
+      - new
+      - existing
+    ConstraintDescription: Must state whether there is an existing VPC or not
 
 Rules:
   PrimarySubnetIsRequired:
@@ -55,51 +60,63 @@ Resources:
   VPCPrivateSubnetA:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref ExistingVPC
+      VpcId: 
+        Fn::ImportValue: !Sub '${ApplicationName}-VPC'
       CidrBlock: !Ref PrivateSubnetCIDR
       AvailabilityZone: !Ref PrimarySubnetAZ
       Tags:
+        - Key: Purpose
+          Value: 'VaultDB'
         - Key: Name
           Value: !Join
             - ''
-            - - !Ref AWS::StackName
+            - - !Ref ApplicationName
               - '-vaultdb-private-subnet'
 
   VPCPublicSubnetA:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: !Ref ExistingVPC
+      VpcId: 
+        Fn::ImportValue: !Sub '${ApplicationName}-VPC'
       CidrBlock: !Ref PublicSubnetCIDR
       AvailabilityZone: !Ref PrimarySubnetAZ
       Tags:
+        - Key: Purpose
+          Value: 'VaultDB'
         - Key: Name
           Value: !Join
             - ''
-            - - !Ref AWS::StackName
+            - - !Ref ApplicationName
               - '-vaultdb-public-subnet'
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
       Tags:
+        - Key: Purpose
+          Value: 'VaultDB'
         - Key: Name
-          Value: !Join ['', [!Ref AWS::StackName, '-vaultdb', '-InternetGateway']]
+          Value: !Join ['', [!Ref ApplicationName, '-vaultdb', '-InternetGateway']]
 
   GatewayToInternet:
     Type: AWS::EC2::VPCGatewayAttachment
     Properties:
-      VpcId: !Ref ExistingVPC
+      VpcId: 
+        Fn::ImportValue: !Sub '${ApplicationName}-VPC'
       InternetGatewayId: !Ref InternetGateway
 
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref ExistingVPC
+      VpcId: 
+        Fn::ImportValue: !Sub '${ApplicationName}-VPC'
       Tags:
+        - Key: Purpose
+          Value: 'VaultDB'
         - Key: Name
           Value: !Join
             - ''
-            - - !Ref AWS::StackName
+            - - !Ref ApplicationName
               - '-vaultdb-vpc-Public-Routes'
 
   DefaultPublicRoute:
@@ -119,12 +136,15 @@ Resources:
   PrivateRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: !Ref ExistingVPC 
+      VpcId: 
+        Fn::ImportValue: !Sub '${ApplicationName}-VPC'
       Tags:
+        - Key: Purpose
+          Value: 'VaultDB'
         - Key: Name
           Value: !Join
             - ''
-            - - !Ref AWS::StackName
+            - - !Ref ApplicationName
               - '-vaultdb-vpc-Private-Routes'
 
   PrivateSubnetARouteTableAssociation:
@@ -134,23 +154,19 @@ Resources:
       SubnetId: !Ref VPCPrivateSubnetA
 
 Outputs:
-  VPC:
-    Value: !Ref ExistingVPC
-    Export:
-      Name: !Sub '${AWS::StackName}-VPC'
   PrivateSubnet:
     Value: !Ref VPCPrivateSubnetA
     Export:
-      Name: !Sub ${AWS::StackName}-VPCPrivateSubnet
+      Name: !Sub ${ApplicationName}-VPCPrivateSubnet
   PublicSubnet:
     Value: !Ref VPCPublicSubnetA
     Export:
-      Name: !Sub ${AWS::StackName}-VPCPublicSubnet
+      Name: !Sub ${ApplicationName}-VPCPublicSubnet
   PrivateRouteTable:
     Value: !Ref PrivateRouteTable
     Export:
-      Name: !Sub ${AWS::StackName}-PrivateRouteTable
+      Name: !Sub ${ApplicationName}-PrivateRouteTable
   PublicRouteTable:
     Value: !Ref PublicRouteTable
     Export:
-      Name: !Sub ${AWS::StackName}-PublicRouteTable
+      Name: !Sub ${ApplicationName}-PublicRouteTable

@@ -7,38 +7,15 @@ Parameters:
     AllowedPattern: "^[a-z][a-z0-9-]{0,48}[a-z0-9]$"
     Description: Enter the name of your application with no spaces.
 
-  VPCStackName:
-    Type: String
-    AllowedPattern: "^[a-z][a-z0-9-]{0,48}[a-z0-9]$"
-
 Metadata:
   Author: VaultDB.ai
   Url: https://vaultdb.ai
-  AWS::CloudFormation::Interface: 
-    ParameterGroups: 
-      - 
-        Label: 
-          default: "Required Parameters"
-        Parameters: 
-          - ApplicationName
-          - VPCStackName
-
-    ParameterLabels:
-      ApplicationName: 
-        default: "What are you calling this App(Please Include dev/test/prod in name to diffrentiate between instance)?"
-      VPCStackName: 
-        default: "What was the name of VPC stack (you should configure network, if not created yet)?"
 
 Rules:
   ApplicationNameIsRequired:
     Assertions:
       - AssertDescription: Application Name is required
         Assert: !Not [!Equals [!Ref ApplicationName, '']]
-
-  VPCStackNameIsRequired:
-    Assertions:
-      - AssertDescription: VPC Stack name is required
-        Assert: !Not [!Equals [!Ref VPCStackName, '']]
 
 Resources:
     EFSSecurityGroup:
@@ -47,7 +24,7 @@ Resources:
             GroupDescription: "security group for the prod EFS"
             GroupName: !Join ['', [!Ref ApplicationName, '-vaultdb', '-EFS-SG']]
             VpcId:
-              Fn::ImportValue: !Sub '${VPCStackName}-VPC'
+              Fn::ImportValue: !Sub '${ApplicationName}-VPC'
             Tags:
               - 
                 Key: Environment
@@ -102,7 +79,7 @@ Resources:
             SecurityGroups: 
               - !Ref EFSSecurityGroup
             SubnetId: 
-              Fn::ImportValue: !Sub '${VPCStackName}-VPCPrivateSubnet'
+              Fn::ImportValue: !Sub '${ApplicationName}-VPCPrivateSubnet'
 
     EFSInterfaceEndpoint:
         Type: 'AWS::EC2::VPCEndpoint'
@@ -110,9 +87,9 @@ Resources:
             VpcEndpointType: Interface
             ServiceName: !Sub 'com.amazonaws.${AWS::Region}.elasticfilesystem'
             VpcId:
-              Fn::ImportValue: !Sub '${VPCStackName}-VPC'
+              Fn::ImportValue: !Sub '${ApplicationName}-VPC'
             SubnetIds: 
-              - Fn::ImportValue: !Sub '${VPCStackName}-VPCPrivateSubnet'
+              - Fn::ImportValue: !Sub '${ApplicationName}-VPCPrivateSubnet'
             SecurityGroupIds:
               - !Ref EFSSecurityGroup
 Outputs:
@@ -120,9 +97,9 @@ Outputs:
     Description: The created EFS 
     Value: !Ref EFSFileSystem
     Export:
-      Name: !Sub ${VPCStackName}-EFSFileSystem
+      Name: !Sub ${ApplicationName}-EFSFileSystem
   EFSMountTarget:
     Description: The EFS EFSMountTarget
     Value: !Ref EFSMountTarget
     Export:
-      Name: !Sub ${VPCStackName}-EFSMountTarget
+      Name: !Sub ${ApplicationName}-EFSMountTarget

@@ -7,38 +7,15 @@ Parameters:
     AllowedPattern: "^[a-z][a-z0-9-]{0,48}[a-z0-9]$"
     Description: Enter the name of your application with no spaces.
 
-  VPCStackName:
-    Type: String
-    AllowedPattern: "^[a-z][a-z0-9-]{0,48}[a-z0-9]$"
-
 Metadata:
   Author: VaultDB.ai
   Url: https://vaultdb.ai
-  AWS::CloudFormation::Interface: 
-    ParameterGroups: 
-      - 
-        Label: 
-          default: "Required Parameters"
-        Parameters: 
-          - ApplicationName
-          - VPCStackName
-
-    ParameterLabels:
-      ApplicationName: 
-        default: "What are you calling this App(Please Include dev/test/prod in name to diffrentiate between instance)?"
-      VPCStackName: 
-        default: "What was the name of VPC stack (you should configure network, if not created yet)?"
 
 Rules:
   ApplicationNameIsRequired:
     Assertions:
       - AssertDescription: Application Name is required
         Assert: !Not [!Equals [!Ref ApplicationName, '']]
-
-  VPCStackNameIsRequired:
-    Assertions:
-      - AssertDescription: VPC Stack name is required
-        Assert: !Not [!Equals [!Ref VPCStackName, '']]
 
 Resources:  
   AccessLogBucket:
@@ -99,23 +76,23 @@ Resources:
               - !Ref PublicBucket
       ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'
       VpcId: 
-        Fn::ImportValue: !Sub "${VPCStackName}-VPC"
+        Fn::ImportValue: !Sub "${ApplicationName}-VPC"
       RouteTableIds:
-        - Fn::ImportValue: !Sub "${VPCStackName}-PrivateRouteTable"
+        - Fn::ImportValue: !Sub "${ApplicationName}-PrivateRouteTable"
 
 Outputs:
   DataBucketName:
     Description: Name of the main bucket
     Value: !Ref DataBucket
     Export:
-      Name: !Sub ${VPCStackName}-DataBucket
+      Name: !Sub ${ApplicationName}-DataBucket
   PulicBucketName:
     Description: Name of the public bucket
     Value: !Ref PublicBucket
     Export:
-      Name: !Sub ${VPCStackName}-PublicBucket
+      Name: !Sub ${ApplicationName}-PublicBucket
   LogBucketName:
     Description: Name of the access log bucket
     Value: !Ref AccessLogBucket
     Export:
-      Name: !Sub ${VPCStackName}-AccessLogBucket
+      Name: !Sub ${ApplicationName}-AccessLogBucket
