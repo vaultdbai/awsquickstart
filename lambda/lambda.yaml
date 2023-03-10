@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: VaultDB Infrstructure.
+Parameters:
+  ApplicationName:
+    Type: String
+    AllowedPattern: "^[a-z][a-z0-9-]{0,48}[a-z0-9]$"
+    Description: Enter the name of your application with no spaces.
+
+Metadata:
+  Author: VaultDB.ai
+  Url: https://vaultdb.ai
+
+Resources:
+  LambdaRoles:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL:
+        !Join
+          - ''
+          - - 'https://s3.amazonaws.com/'
+            - !Ref BucketName
+            - '/awsquickstart/lambda/roles.yaml'
+      Parameters:
+        ApplicationName: !Ref AWS::StackName
+        
+  CreateLambdaFunction:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: VPCStack
+    Properties:
+      TemplateURL:
+        !Join
+          - ''
+          - - 'https://s3.amazonaws.com/'
+            - !Ref BucketName
+            - '/awsquickstart/lambda/execute-sql.yaml'
+      Parameters:
+        ApplicationName: !Ref AWS::StackName

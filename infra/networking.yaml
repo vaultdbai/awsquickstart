@@ -90,7 +90,7 @@ Resources:
         - Key: Purpose
           Value: 'VaultDB'
         - Key: Name
-          Value: !Join ['', [!Ref ApplicationName, '-vaultdb', '-InternetGateway']]
+          Value: !Join ['', ['vaultdb', '-InternetGateway-', !Ref ApplicationName]]
 
   GatewayToInternet:
     Type: AWS::EC2::VPCGatewayAttachment

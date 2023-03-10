@@ -1,0 +1,68 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: VaultDB Lambda funtion to execute Queries
+Metadata:
+  Author: VaultDB.ai
+  Url: https://vaultdb.ai
+      
+Parameters:
+  ApplicationName:
+    Type: String
+    AllowedPattern: "^[a-z][a-z0-9-]{0,48}[a-z0-9]$"
+    Description: Enter the name of your application with no spaces.
+    
+Resources:
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Join ['', ['/aws/lambda/vaultdb', '-execute-query-', !Ref ApplicationName]]
+      RetentionInDays: 7
+            
+  ExecuteQueryFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Execute Vaultdb SQL Qeries
+      FunctionName: !Join ['', ['vaultdb', '-execute-query-', !Ref ApplicationName]]
+      Handler: index.lambda_handler
+      MemorySize: 128
+      Runtime: python3.8
+      Layers:
+        - !Ref libs
+      Role: 
+        Fn::ImportValue: !Sub '${ApplicationName}-ExecuteRole'
+      Timeout: 240
+      Environment:
+        Variables:
+          test1: 'test1'
+          test2: 'test2'
+      Code:
+        ZipFile: |
+            # Imports
+            import os
+            import logging
+            import random
+            import string
+
+            # Set up the logger
+            logger = logging.getLogger()
+            logger.setLevel(logging.DEBUG) # Very verbose
+
+            def lambda_handler(event, context):
+                # Generate a random string to ensure no duplicates are put into DDB table
+                randomstring = (''.join(random.choice(string.ascii_letters) for i in range(10)))
+                logger.info('Random string generated: %s', randomstring)                                    
+                return randomstring    
+  libs:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: vaultdb
+      Description: Dependencies for the blank-python sample app.
+      Content:        
+        S3Bucket: vaultdb-hosted-content
+        S3Key: layer.zip
+      CompatibleRuntimes:
+        - python3.8
+Outputs:
+  CLI:
+    Description: Use this command to invoke the Lambda function
+    Value: !Sub |
+        aws lambda invoke --function-name 'vaultdb-execute-query-${ApplicationName}' --payload 'SELECT CURRENT_CATALOG' lambda-output.txt --cli-binary-format raw-in-base64-out

@@ -22,7 +22,7 @@ Resources:
         Type: "AWS::EC2::SecurityGroup"
         Properties:
             GroupDescription: "security group for the prod EFS"
-            GroupName: !Join ['', [!Ref ApplicationName, '-vaultdb', '-EFS-SG']]
+            GroupName: !Join ['', ['vaultdb', '-EFS-SG-', !Ref ApplicationName]]
             VpcId:
               Fn::ImportValue: !Sub '${ApplicationName}-VPC'
             Tags:
@@ -31,7 +31,7 @@ Resources:
                 Value: !Ref ApplicationName
               - 
                 Key: Name
-                Value: !Join ['', [!Ref ApplicationName, '-vaultdb', '-VPC-EFS-SG']]
+                Value: !Join ['', ['vaultdb', '-VPC-EFS-SG-', !Ref ApplicationName]]
               - 
                 Key: Project
                 Value: !Ref ApplicationName
@@ -64,7 +64,7 @@ Resources:
                 Value: !Ref ApplicationName
               - 
                 Key: Name
-                Value: !Join ['', [!Ref ApplicationName, '-vaultdb', '-VPC-EFS']]
+                Value: !Join ['', ['vaultdb', '-VPC-EFS-', !Ref ApplicationName]]
               - 
                 Key: Project
                 Value: !Ref ApplicationName

@@ -1,0 +1,116 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: VaultDB Lambda roles
+Metadata:
+  Author: VaultDB.ai
+  Url: https://vaultdb.ai
+
+Parameters:
+  ApplicationName:
+    Type: String
+    AllowedPattern: "^[a-z][a-z0-9-]{0,48}[a-z0-9]$"
+    Description: Enter the name of your application with no spaces.
+
+Resources:
+  ExecuteRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Join ['', ['vaultdb', '-execution-role-', !Ref ApplicationName]]
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          -
+            Effect: 'Allow'
+            Principal:
+              Service:
+                - 'lambda.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+          -
+            Effect: 'Allow'
+            Principal:
+              Service:
+                - 'ecs-tasks.amazonaws.com'
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: vaultdb_execute_service_resources
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*'
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*'
+              - Effect: Allow
+                Action:
+                  - 's3:ListObjectsInBucket'
+                  - 's3:*Object'
+                Resource: 'arn:aws:s3:::${ApplicationName}*'
+              - Effect: Allow
+                Action:
+                  - 'elasticfilesystem:ClientMount'
+                  - 'elasticfilesystem:ClientWrite'
+                Resource: !Sub 'arn:aws:elasticfilesystem:${AWS::Region}:${AWS::AccountId}:file-system/*'
+                Condition:
+                  Bool:
+                    'elasticfilesystem:AccessedViaMountTarget': 'true'
+
+  VaultDBAdminRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Join ['', ['vaultdb', '-db-admin-role-', !Ref ApplicationName]]
+      Path: "/"     
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal: !Sub 'arn:aws:iam::${AWS::AccountId}:user/*'
+          Action: sts:AssumeRole     
+
+  VaultDBUserRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      RoleName: !Join ['', ['vaultdb', '-db-user-role-', !Ref ApplicationName]]
+      Path: "/"     
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal: !Sub 'arn:aws:iam::${AWS::AccountId}:user/*'
+          Action: sts:AssumeRole      
+
+  VaultDBUserRolePolicies:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      ManagedPolicyName: !Sub '${RuleName}-RolePolicies'
+      Roles:
+        - !Ref VaultDBAdminRole
+        - !Ref VaultDBUserRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:       
+        - Effect: Allow
+          Action:
+          - lambda:InvokeFunction*
+          Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:*"
+Outputs:
+  ExecuteRole:
+    Description: VaultDB Execution Role that works on behalf of user
+    Value: !GetAtt ExecuteRole
+    Export:
+      Name: !Sub ${ApplicationName}-ExecuteRole
+  VaultDBAdminRole:
+    Description: VaultDB Admin Role to manage database
+    Value: !GetAtt VaultDBAdminRoleARN
+    Export:
+      Name: !Sub ${ApplicationName}-VaultDBAdminRole
+  VaultDBUserRole:
+    Description: VaultDB Admin Role to manage database
+    Value: !GetAtt VaultDBUserRole
+    Export:
+      Name: !Sub ${ApplicationName}-VaultDBUserRole
