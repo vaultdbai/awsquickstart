@@ -105,13 +105,64 @@ Resources:
                   - elasticfilesystem:CreateFileSystem
                   - elasticfilesystem:PutLifecycleConfiguration
                   - elasticfilesystem:DescribeFileSystems
-                  - elasticfilesystem:DeleteMountTarget
                   - elasticfilesystem:DescribeMountTargets
                   - elasticfilesystem:CreateMountTarget
+                  - elasticfilesystem:CreateAccessPoint
+                  - elasticfilesystem:DescribeAccessPoints
                   - elasticfilesystem:PutBackupPolicy
-                  - elasticfilesystem:DeleteFileSystem
                   - elasticfilesystem:DescribeMountTargetSecurityGroups
                 Resource: "*"
+              - Effect: Allow
+                Action:
+                  - elasticfilesystem:DeleteMountTarget
+                  - elasticfilesystem:DeleteAccessPoint
+                  - elasticfilesystem:DeleteFileSystem
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - cognito-idp:DescribeUserPool
+                  - cognito-idp:DescribeUserPoolClient
+                  - cognito-idp:CreateUserPool
+                  - cognito-idp:CreateUserPoolClient
+                  - cognito-idp:AdminConfirmSignUp
+                  - cognito-idp:AdminInitiateAuth
+                  - cognito-idp:AdminCreateUser
+                  - cognito-idp:AdminSetUserPassword
+                  - cognito-idp:AdminAddUserToGroup
+                  - cognito-identity:CreateIdentityPool
+                  - cognito-identity:DeleteIdentityPool
+                  - cognito-identity:DescribeIdentityPool
+                  - cognito-identity:SetIdentityPoolRoles                  
+                Resource: "arn:aws:cognito-idp:*:*:*"
+              - Effect: Allow
+                Action:
+                  - cognito-idp:DeleteUserPool
+                  - cognito-idp:AdminDeleteUser
+                  - cognito-idp:AdminDeleteUserAttributes
+                  - cognito-idp:AdminRemoveUserFromGroup
+                  - cognito-idp:DeleteUserPoolClient
+                Resource: "arn:aws:cognito-idp:*:*:*"
+              - Effect: Allow
+                Action:
+                  - logs:ListTagsLogGroup
+                  - logs:DescribeLogGroups
+                  - logs:CreateLogGroup
+                  - logs:TagLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutRetentionPolicy
+                Resource: "arn:aws:logs:*:*:*"
+              - Effect: Allow
+                Action:
+                  - lambda:*
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - logs:DeleteLogGroup
+                  - logs:DeleteDestination
+                Resource: "arn:aws:logs:*:*:*"
+                Condition:
+                  StringEquals:
+                    "logs:ResourceTag/Purpose": "VaultDB"
               - Effect: Allow
                 Action:
                   - s3:CreateBucket
@@ -125,6 +176,34 @@ Resources:
                   - s3:PutBucketLogging
                   - s3:PutBucketPolicy
                 Resource: "*"
+              - Effect: Allow
+                Action:
+                  - iam:GetRole
+                  - iam:CreateRole
+                  - iam:CreatePolicy
+                  - iam:ListRoleTags
+                  - iam:PutRolePolicy
+                  - iam:AttachRolePolicy
+                  - iam:ListPolicyVersions
+                  - iam:TagRole
+                  - iam:ListPolicyTags
+                  - iam:GetRolePolicy                  
+                  - iam:TagPolicy
+                  - iam:GetPolicy
+                  - iam:ListUserTags
+                  - iam:TagUser
+                  - iam:DeleteRolePolicy
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - iam:DetachRolePolicy
+                  - iam:DeleteRole
+                  - iam:DeletePolicy
+                  - iam:DeleteRolePolicy
+                Resource: "arn:aws:iam::${AWS::AccountId}:role/*"
+                Condition:
+                  StringEquals:
+                    "iam:ResourceTag/Purpose": "VaultDB"
               - Effect: Allow
                 Action:
                   - ec2:DeleteInternetGateway

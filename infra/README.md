@@ -10,3 +10,5 @@
 
 
 https://s3.amazonaws.com/vaultdb-hosted-content/awsquickstart/infra/infra.yaml
+
+awsv2 cloudformation create-stack --stack-name vaultdb-vpc --template-body file://vpc.yaml --parameters file://parameters.json

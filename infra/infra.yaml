@@ -124,3 +124,29 @@ Resources:
             - '/awsquickstart/infra/s3-data-store.yaml'
       Parameters:
         ApplicationName: !Ref AWS::StackName
+
+  LambdaDeploymentStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: DataStoreStack
+    Properties:
+      TemplateURL:
+        !Join
+          - ''
+          - - 'https://s3.amazonaws.com/'
+            - !Ref BucketName
+            - '/awsquickstart/infra/lambda.yaml'
+      Parameters:
+        ApplicationName: !Ref AWS::StackName
+
+  CognitoUsersStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: LambdaDeploymentStack
+    Properties:
+      TemplateURL:
+        !Join
+          - ''
+          - - 'https://s3.amazonaws.com/'
+            - !Ref BucketName
+            - '/awsquickstart/infra/cognito.yaml'
+      Parameters:
+        ApplicationName: !Ref AWS::StackName
