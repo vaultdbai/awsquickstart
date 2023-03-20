@@ -107,7 +107,7 @@ Resources:
       Environment:
         Variables:
           commitlog_directory: '/mnt/commitlog'
-          test2: 'test2'
+          data_store: !Join ['', ['vaultdb', '-data-', !Ref ApplicationName]]
       VpcConfig:
         SecurityGroupIds:
           - Fn::ImportValue: !Sub '${ApplicationName}-DataSecurityGroup'
@@ -141,6 +141,12 @@ Resources:
                 highscore = open(filename, append_write)
                 highscore.write("Username: " + player + '\n')
                 highscore.close()
+
+                # Upload to s3
+                s3 = boto3.resource('s3')
+                data_store = os.environ['data_store']
+                s3.Bucket(data_store).upload_file(filename, f"data/{player}.txt")
+
                 # Generate a random string to ensure no duplicates are put into DDB table
                 randomstring = (''.join(random.choice(string.ascii_letters) for i in range(10)))
                 logger.info('Random string generated: %s', randomstring)                                    

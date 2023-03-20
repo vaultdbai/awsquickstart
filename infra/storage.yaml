@@ -191,6 +191,11 @@ Outputs:
     Value: !Ref DataSecurityGroup
     Export:
       Name: !Sub ${ApplicationName}-DataSecurityGroup
+  S3GatewayEndpoint:
+    Description: The S3 GatewayEndpoint
+    Value: !Ref S3GatewayEndpoint
+    Export:
+      Name: !Sub ${ApplicationName}-S3GatewayEndpoint
   EFSInterfaceEndpoint:
     Description: The EFS EFSInterfaceEndpoint
     Value: !Ref EFSInterfaceEndpoint
