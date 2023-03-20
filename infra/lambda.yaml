@@ -110,7 +110,7 @@ Resources:
           test2: 'test2'
       VpcConfig:
         SecurityGroupIds:
-          - Fn::ImportValue: !Sub '${ApplicationName}-EFSSecurityGroup'
+          - Fn::ImportValue: !Sub '${ApplicationName}-DataSecurityGroup'
         SubnetIds:
           - Fn::ImportValue: !Sub '${ApplicationName}-VPCPrivateSubnet'
       FileSystemConfigs:

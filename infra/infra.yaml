@@ -99,19 +99,6 @@ Resources:
         PublicSubnetCIDR: !Ref PublicSubnetCIDR
         PrivateSubnetCIDR: !Ref PrivateSubnetCIDR
 
-  EFSStack:
-    Type: AWS::CloudFormation::Stack
-    DependsOn: NetworkingStack
-    Properties:
-      TemplateURL:
-        !Join
-          - ''
-          - - 'https://s3.amazonaws.com/'
-            - !Ref BucketName
-            - '/awsquickstart/infra/efs-commit-log-storage.yaml'
-      Parameters:
-        ApplicationName: !Ref AWS::StackName
-
   DataStoreStack:
     Type: AWS::CloudFormation::Stack
     DependsOn: NetworkingStack
@@ -121,7 +108,7 @@ Resources:
           - ''
           - - 'https://s3.amazonaws.com/'
             - !Ref BucketName
-            - '/awsquickstart/infra/s3-data-store.yaml'
+            - '/awsquickstart/infra/storage.yaml'
       Parameters:
         ApplicationName: !Ref AWS::StackName
 
