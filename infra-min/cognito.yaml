@@ -72,9 +72,6 @@ Resources:
         - PolicyName: !Join ['', ['vaultdb', '-CognitoUnauthorizedPolicy-', !Ref ApplicationName]]
           PolicyDocument: 
             Version: "2012-10-17"
-            Tags:
-              - Key: Purpose
-                Value: 'VaultDB'    
             Statement: 
               - Effect: "Allow"
                 Action:
@@ -108,9 +105,6 @@ Resources:
         - PolicyName: !Join ['', ['vaultdb', '-CognitoAdminAuthorizedPolicy-', !Ref ApplicationName]]
           PolicyDocument: 
             Version: "2012-10-17"
-            Tags:
-              - Key: Purpose
-                Value: 'VaultDB'    
             Statement: 
               - Effect: "Allow"
                 Action:
@@ -183,9 +177,6 @@ Resources:
         - !Ref VaultDBUserRole
       PolicyDocument:
         Version: "2012-10-17"
-        Tags:
-          - Key: Purpose
-            Value: 'VaultDB'    
         Statement:       
           - Effect: "Allow"
             Action:

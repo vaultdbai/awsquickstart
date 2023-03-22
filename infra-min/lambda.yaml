@@ -43,12 +43,9 @@ Resources:
             Action:
               - sts:AssumeRole
       Policies:
-        - PolicyName: vaultdb_execute_service_resources
+        - PolicyName: !Join ['', ['vaultdb', '-execution-service-policy-', !Ref ApplicationName]]
           PolicyDocument:
             Version: '2012-10-17'
-            Tags:
-              - Key: Purpose
-                Value: 'VaultDB'    
             Statement:
               - Effect: Allow
                 Action:
