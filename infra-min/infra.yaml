@@ -1,0 +1,130 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: VaultDB Infrstructure.
+Parameters:
+  PrimarySubnetAZ:
+    Type: AWS::EC2::AvailabilityZone::Name
+    AllowedPattern: ".+"
+    Description: Enter the primary availability zone for your subnet.
+
+  ExistingVpcID:
+    Type: String
+    Default: ''
+    ConstraintDescription: Please enter existing VPC ID to use existing.
+
+  CidrBlock:
+    Description: VPC CIDR Block If Creating new (eg 10.0.0.0/16)
+    Type: String
+    
+  PrivateSubnetCIDR:
+    AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    Default: 10.0.20.0/24
+    Description: VPC CIDR Block for the Private Subnet (eg 10.0.20.0/24)
+    Type: String    
+
+  BucketName:
+    Type: String
+    Default: 'vaultdb-hosted-content'
+    Description: Vaultdb Cloudformation template store. Please do not change unless you have custom templates.
+
+Metadata:
+  Author: VaultDB.ai
+  Url: https://vaultdb.ai
+  AWS::CloudFormation::Interface: 
+    ParameterGroups: 
+      - 
+        Label: 
+          default: "Required Parameters"
+        Parameters: 
+          - PrimarySubnetAZ
+          - ExistingVpcID
+          - CidrBlock
+          - BucketName
+        
+Conditions:
+  IsNewVPC: !Equals [ !Ref ExistingVpcID, '' ]
+
+Rules:
+  RequiredParameterAssertions:
+    Assertions:
+      - AssertDescription: Primary Subnet is required
+        Assert: !Not [!Equals [!Ref PrimarySubnetAZ, '']]
+      - AssertDescription: Primary Subnet is cannot be empty
+        Assert: !Not [!Equals [!Ref PrimarySubnetAZ, '']]
+      - AssertDescription: Private Subnet CIDR is required
+        Assert: !Not [!Equals [!Ref PrivateSubnetCIDR, '']]
+  CreateNewVPC:
+    RuleCondition: !Equals 
+      - !Ref ExistingVpcID
+      - ''
+    Assertions:        
+      - AssertDescription: CidrBlock is required
+        Assert: !Not [!Equals [!Ref CidrBlock, '']]
+
+Resources:
+  VPCStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL:
+        !Join
+          - ''
+          - - 'https://s3.amazonaws.com/'
+            - !Ref BucketName
+            - '/awsquickstart/infra/vpc.yaml'
+      Parameters:
+        ApplicationName: !Ref AWS::StackName
+        ExistingVpcID: !Ref ExistingVpcID
+        CidrBlock: !Ref CidrBlock
+        
+  NetworkingStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: VPCStack
+    Properties:
+      TemplateURL:
+        !Join
+          - ''
+          - - 'https://s3.amazonaws.com/'
+            - !Ref BucketName
+            - '/awsquickstart/infra/networking.yaml'
+      Parameters:
+        ApplicationName: !Ref AWS::StackName
+        PrimarySubnetAZ: !Ref PrimarySubnetAZ
+        PrivateSubnetCIDR: !Ref PrivateSubnetCIDR
+
+  DataStoreStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: NetworkingStack
+    Properties:
+      TemplateURL:
+        !Join
+          - ''
+          - - 'https://s3.amazonaws.com/'
+            - !Ref BucketName
+            - '/awsquickstart/infra/storage.yaml'
+      Parameters:
+        ApplicationName: !Ref AWS::StackName
+
+  LambdaDeploymentStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: DataStoreStack
+    Properties:
+      TemplateURL:
+        !Join
+          - ''
+          - - 'https://s3.amazonaws.com/'
+            - !Ref BucketName
+            - '/awsquickstart/infra/lambda.yaml'
+      Parameters:
+        ApplicationName: !Ref AWS::StackName
+
+  CognitoUsersStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: LambdaDeploymentStack
+    Properties:
+      TemplateURL:
+        !Join
+          - ''
+          - - 'https://s3.amazonaws.com/'
+            - !Ref BucketName
+            - '/awsquickstart/infra/cognito.yaml'
+      Parameters:
+        ApplicationName: !Ref AWS::StackName

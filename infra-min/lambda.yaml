@@ -1,0 +1,167 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: VaultDB Lambda funtion to execute Queries
+Metadata:
+  Author: VaultDB.ai
+  Url: https://vaultdb.ai
+      
+Parameters:
+  ApplicationName:
+    Type: String
+    AllowedPattern: "^[a-z][a-z0-9-]{0,48}[a-z0-9]$"
+    Description: Enter the name of your application with no spaces.
+    
+Resources:
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Join ['', ['/aws/lambda/vaultdb', '-execute-query-', !Ref ApplicationName]]
+      RetentionInDays: 7
+      Tags:
+        - Key: Purpose
+          Value: 'VaultDB'    
+
+  ExecuteRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Join ['', ['vaultdb', '-execution-role-', !Ref ApplicationName]]
+      Tags:
+        - Key: Purpose
+          Value: 'VaultDB'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              Service:
+                - ecs-tasks.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: vaultdb_execute_service_resources
+          PolicyDocument:
+            Version: '2012-10-17'
+            Tags:
+              - Key: Purpose
+                Value: 'VaultDB'    
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - s3:ListMultipartUploadParts
+                  - s3:*Object
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - elasticfilesystem:ClientMount
+                  - elasticfilesystem:ClientWrite
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - ec2:DescribeNetworkInterfaces
+                  - ec2:CreateNetworkInterface
+                  - ec2:DeleteNetworkInterface
+                  - ec2:DescribeInstances
+                  - ec2:AttachNetworkInterface
+                Resource: '*'
+
+  AccessPointResource:
+    Type: AWS::EFS::AccessPoint
+    Properties:
+      FileSystemId: 
+        Fn::ImportValue: !Sub '${ApplicationName}-EFSFileSystem'
+      PosixUser:
+        Uid: 1001
+        Gid: 1001
+      RootDirectory:
+        CreationInfo:
+          OwnerGid: 1001
+          OwnerUid: 1001
+          Permissions: 770
+        Path: /commitlog
+
+  ExecuteQueryFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Tags:
+        - Key: Purpose
+          Value: 'VaultDB'    
+      Description: Execute Vaultdb SQL Qeries
+      FunctionName: !Join ['', ['vaultdb', '-execute-query-', !Ref ApplicationName]]
+      Handler: index.lambda_handler
+      MemorySize: 128
+      Runtime: python3.8
+      Role: !GetAtt ExecuteRole.Arn
+      Timeout: 240
+      Environment:
+        Variables:
+          commitlog_directory: '/mnt/commitlog'
+          data_store: !Join ['', ['vaultdb', '-data-', !Ref ApplicationName]]
+      VpcConfig:
+        SecurityGroupIds:
+          - Fn::ImportValue: !Sub '${ApplicationName}-DataSecurityGroup'
+        SubnetIds:
+          - Fn::ImportValue: !Sub '${ApplicationName}-VPCPrivateSubnet'
+      FileSystemConfigs:
+        - Arn: !GetAtt AccessPointResource.Arn
+          LocalMountPath: /mnt/commitlog
+      Code:
+        ZipFile: |
+            # Imports
+            import os
+            import logging
+            import random
+            import string
+
+            # Set up the logger
+            logger = logging.getLogger()
+            logger.setLevel(logging.DEBUG) # Very verbose
+
+            def lambda_handler(event, context):
+                # Ceate file on efs
+                commitlog_directory = os.environ['commitlog_directory']
+                logger.info('commitlog directory: %s', commitlog_directory)                                    
+                player = 'bob'
+                filename = f'{commitlog_directory}/{player}.txt'
+                if os.path.exists(filename):
+                    append_write = 'a' # append if already exists
+                else:
+                    append_write = 'w' # make a new file if not
+                highscore = open(filename, append_write)
+                highscore.write("Username: " + player + '\n')
+                highscore.close()
+
+                # Upload to s3
+                s3 = boto3.resource('s3')
+                data_store = os.environ['data_store']
+                s3.Bucket(data_store).upload_file(filename, f"data/{player}.txt")
+
+                # Generate a random string to ensure no duplicates are put into DDB table
+                randomstring = (''.join(random.choice(string.ascii_letters) for i in range(10)))
+                logger.info('Random string generated: %s', randomstring)                                    
+                return randomstring    
+
+Outputs:
+  ExecuteRole:
+    Description: VaultDB Execution Role that works on behalf of user
+    Value: !Ref ExecuteRole
+    Export:
+      Name: !Sub ${ApplicationName}-ExecuteRole
+  CLI:
+    Description: Use this command to invoke the Lambda function
+    Value: !Sub |
+        aws lambda invoke --function-name 'vaultdb-execute-query-${ApplicationName}' --payload 'SELECT CURRENT_CATALOG' lambda-output.txt --cli-binary-format raw-in-base64-out
+        

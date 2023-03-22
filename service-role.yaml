@@ -124,6 +124,7 @@ Resources:
                   - cognito-idp:DescribeUserPoolClient
                   - cognito-idp:CreateUserPool
                   - cognito-idp:CreateUserPoolClient
+                  - cognito-idp:CreateGroup
                   - cognito-idp:AdminConfirmSignUp
                   - cognito-idp:AdminInitiateAuth
                   - cognito-idp:AdminCreateUser
@@ -133,15 +134,16 @@ Resources:
                   - cognito-identity:DeleteIdentityPool
                   - cognito-identity:DescribeIdentityPool
                   - cognito-identity:SetIdentityPoolRoles                  
-                Resource: "arn:aws:cognito-idp:*:*:*"
+                Resource: "*"
               - Effect: Allow
                 Action:
                   - cognito-idp:DeleteUserPool
+                  - cognito-idp:DeleteGroup
                   - cognito-idp:AdminDeleteUser
                   - cognito-idp:AdminDeleteUserAttributes
                   - cognito-idp:AdminRemoveUserFromGroup
                   - cognito-idp:DeleteUserPoolClient
-                Resource: "arn:aws:cognito-idp:*:*:*"
+                Resource: "*"
               - Effect: Allow
                 Action:
                   - logs:ListTagsLogGroup
@@ -160,9 +162,6 @@ Resources:
                   - logs:DeleteLogGroup
                   - logs:DeleteDestination
                 Resource: "arn:aws:logs:*:*:*"
-                Condition:
-                  StringEquals:
-                    "logs:ResourceTag/Purpose": "VaultDB"
               - Effect: Allow
                 Action:
                   - s3:CreateBucket
@@ -192,7 +191,6 @@ Resources:
                   - iam:GetPolicy
                   - iam:ListUserTags
                   - iam:TagUser
-                  - iam:DeleteRolePolicy
                 Resource: "*"
               - Effect: Allow
                 Action:
@@ -200,7 +198,7 @@ Resources:
                   - iam:DeleteRole
                   - iam:DeletePolicy
                   - iam:DeleteRolePolicy
-                Resource: "arn:aws:iam::${AWS::AccountId}:role/*"
+                Resource: "arn:aws:iam::*"
                 Condition:
                   StringEquals:
                     "iam:ResourceTag/Purpose": "VaultDB"
