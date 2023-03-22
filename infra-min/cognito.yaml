@@ -6,6 +6,11 @@ Parameters:
     AllowedPattern: "^[a-z][a-z0-9-]{0,48}[a-z0-9]$"
     Description: Enter the name of your application with no spaces.
 
+  AdminEmail:
+    Description: VaultDB Admin Email for notifications
+    Type: String
+    AllowedPattern: '[^@]+@[^@]+\.[^@]+'
+
 Metadata:
   Author: VaultDB.ai
   Url: https://vaultdb.ai
@@ -26,7 +31,19 @@ Resources:
           AttributeDataType: String
           Mutable: true
           Required: false
-  
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: true
+        UnusedAccountValidityDays: 90
+        InviteMessageTemplate:
+          EmailMessage: 'Your VaultDB username is {username} and the temporary password is {####}'
+          EmailSubject: 'Your temporary password for VaultDB'
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 6
+          RequireLowercase: false
+          RequireNumbers: false
+          RequireSymbols: false
+          RequireUppercase: false
   # Creates a User Pool Client to be used by the identity pool
   UserPoolClient:
     Type: "AWS::Cognito::UserPoolClient"
@@ -214,22 +231,26 @@ Resources:
     Properties:
       Username: 'vaultdb'
       UserPoolId: !Ref UserPool
+      DesiredDeliveryMediums:
+        - EMAIL
       UserAttributes:
         - Name: name
           Value: 'vaultdb'
         - Name: email
-          Value: 'admin@changethisemailaddress.xyz'
+          Value: !Ref AdminEmail
 
   QueryUser:
     Type: AWS::Cognito::UserPoolUser
     Properties:
       Username: 'demo'
       UserPoolId: !Ref UserPool
+      DesiredDeliveryMediums:
+        - EMAIL
       UserAttributes:
         - Name: name
           Value: 'demo'
         - Name: email
-          Value: 'demo@changethisemailaddress.xyz'
+          Value: !Ref AdminEmail
 
   AdminUserAssignment:
     Type: AWS::Cognito::UserPoolUserToGroupAttachment

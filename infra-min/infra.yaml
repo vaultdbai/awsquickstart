@@ -1,6 +1,12 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: VaultDB Infrstructure.
 Parameters:
+  AdminEmail:
+    Description: VaultDB Admin Email for default database user notifications
+    Type: String
+    AllowedPattern: '[^@]+@[^@]+\.[^@]+'
+    Default: vaultdb@outlook.com
+
   PrimarySubnetAZ:
     Type: AWS::EC2::AvailabilityZone::Name
     AllowedPattern: ".+"
@@ -35,6 +41,7 @@ Metadata:
         Label: 
           default: "Required Parameters"
         Parameters: 
+          - AdminEmail
           - PrimarySubnetAZ
           - ExistingVpcID
           - CidrBlock
@@ -128,3 +135,5 @@ Resources:
             - '/awsquickstart/infra/cognito.yaml'
       Parameters:
         ApplicationName: !Ref AWS::StackName
+        AdminEmail: !Ref AdminEmail
+        
