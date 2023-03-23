@@ -11,15 +11,6 @@ Parameters:
     Description: Enter the name of your application with no spaces.
     
 Resources:
-  LogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Join ['', ['/aws/lambda/vaultdb', '-execute-query-', !Ref ApplicationName]]
-      RetentionInDays: 7
-      Tags:
-        - Key: Purpose
-          Value: 'VaultDB'    
-
   ExecuteRole:
     Type: AWS::IAM::Role
     Properties:

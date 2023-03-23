@@ -17,12 +17,7 @@ Rules:
       - AssertDescription: Application Name is required
         Assert: !Not [!Equals [!Ref ApplicationName, '']]
 
-Resources:  
-  AccessLogBucket:
-    Type: "AWS::S3::Bucket"
-    Properties:
-      AccessControl: LogDeliveryWrite
-            
+Resources:             
   DataBucket:
     Type: "AWS::S3::Bucket"
     Properties:
@@ -31,9 +26,6 @@ Resources:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
-      LoggingConfiguration:
-        DestinationBucketName: !Ref AccessLogBucket
-        LogFilePrefix: Join ['', ['vaultdb', '-data-store-logs-', !Ref ApplicationName]]
 
   PublicBucket:
     Type: "AWS::S3::Bucket"
@@ -43,9 +35,6 @@ Resources:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
-      LoggingConfiguration:
-        DestinationBucketName: !Ref AccessLogBucket
-        LogFilePrefix: Join ['', ['vaultdb', '-public-storage-logs-', !Ref ApplicationName]]
 
   PublicBucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -105,11 +94,6 @@ Outputs:
     Value: !Ref PublicBucket
     Export:
       Name: !Sub ${ApplicationName}-PublicBucket
-  LogBucketName:
-    Description: Name of the access log bucket
-    Value: !Ref AccessLogBucket
-    Export:
-      Name: !Sub ${ApplicationName}-AccessLogBucket
   EFSFileSystem:
     Description: The created EFS 
     Value: !Ref EFSFileSystem

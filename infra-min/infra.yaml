@@ -136,4 +136,18 @@ Resources:
       Parameters:
         ApplicationName: !Ref AWS::StackName
         AdminEmail: !Ref AdminEmail
-        
+
+  DeployArtifactStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: LambdaDeploymentStack
+    Properties:
+      TemplateURL:
+        !Join
+          - ''
+          - - 'https://s3.amazonaws.com/'
+            - !Ref BucketName
+            - '/awsquickstart/infra/deploy_artifacts.yaml'
+      Parameters:
+        ApplicationName: !Ref AWS::StackName
+        SourceBucketName: !Ref BucketName
+                

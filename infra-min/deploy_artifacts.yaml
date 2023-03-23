@@ -1,0 +1,147 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: VaultDB Lambda funtion to execute Queries
+Metadata:
+  Author: VaultDB.ai
+  Url: https://vaultdb.ai
+      
+Parameters:
+  ApplicationName:
+    Type: String
+    AllowedPattern: "^[a-z][a-z0-9-]{0,48}[a-z0-9]$"
+    Description: Enter the name of your application with no spaces.
+
+  SourceBucketName:
+    Type: String
+    Description: Vaultdb Artifact store.
+
+Resources:
+  ExecuteUtilRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Join ['', ['vaultdb', '-execute-util-', !Ref ApplicationName]]
+      Tags:
+        - Key: Purpose
+          Value: 'VaultDB'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: !Join ['', ['vaultdb', '-execute-util-policy-', !Ref ApplicationName]]
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - s3:ListMultipartUploadParts
+                  - s3:*Object
+                Resource: '*'
+
+  DeploymentUtilFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Tags:
+        - Key: Purpose
+          Value: 'VaultDB'    
+      Description: Execute Vaultdb SQL Qeries
+      FunctionName: !Join ['', ['vaultdb', '-deployment-util-', !Ref ApplicationName]]
+      Handler: index.lambda_handler
+      MemorySize: 128
+      Runtime: python3.8
+      Role: !GetAtt ExecuteUtilRole.Arn
+      Timeout: 60
+      Environment:
+        Variables:
+          aws_region: !Sub '${AWS::Region}'
+          user_pool_id:
+            Fn::ImportValue: !Sub "${ApplicationName}-UserPool"
+          user_pool_client_id:
+            Fn::ImportValue: !Sub "${ApplicationName}-UserPoolClient"
+          source_bucket: !Ref SourceBucketName
+          destination_bucket:
+            Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
+      Code:
+        ZipFile: |
+          import boto3
+          import botocore
+          import json
+          import os
+          import logging
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          s3 = boto3.resource('s3')
+
+          def lambda_handler(event, context):
+            logger.info("New files uploaded to the source bucket.")                  
+            source_bucket = os.environ['source_bucket']
+            destination_bucket = os.environ['destination_bucket']
+            
+            deploy_workbench(source_bucket, destination_bucket)
+            create_pool_cofig(destination_bucket)
+            
+            return "done"
+
+          def create_pool_cofig(destination_bucket):
+            aws_region = os.environ['aws_region']
+            user_pool_id = os.environ['user_pool_id']
+            user_pool_client_id = os.environ['user_pool_client_id']
+
+            logger.info(f"Creating workbench config file for pool {user_pool_id}!") 
+            
+            data_string = f"""const config = {{
+              "REGION": "{aws_region}",
+              "USER_POOL_ID": "{aws_region}",
+              "USER_POOL_APP_CLIENT_ID": "{user_pool_client_id}"
+            }};"""
+            
+            s3 = boto3.resource('s3')
+            object = s3.Object(bucket_name=destination_bucket, key='config.js')
+            object.put(Body=data_string)            
+            logger.info("Created workbench config file!")                  
+
+          def deploy_workbench(source_bucket, destination_bucket):
+              try:                  
+                for key in s3.meta.client.list_objects(Bucket=source_bucket, Prefix='react-sql-editor')['Contents']:
+                    file = key['Key']
+                    if file=='react-sql-editor/':
+                      continue
+                    logger.info(f"Copying file {file}")
+                    source = {'Bucket': source_bucket, 'Key': file}
+                    response = s3.meta.client.copy(source, destination_bucket, file.replace('react-sql-editor/', ''))
+                logger.info("Copied workbench files!")                  
+
+              except botocore.exceptions.ClientError as error:
+                  logger.error("There was an error copying the file to the destination bucket")
+                  print('Error Message: {}'.format(error))
+                  
+              except botocore.exceptions.ParamValidationError as error:
+                  logger.error("Missing required parameters while calling the API.")
+                  print('Error Message: {}'.format(error))
+        
+  DeployInvoke:
+    Type: AWS::CloudFormation::CustomResource
+    DependsOn: DeploymentUtilFunction
+    Properties:
+      ServiceToken: !GetAtt DeploymentUtilFunction.Arn
+
+Outputs:
+  CLI:
+    Description: Use this command to copy files
+    Value: !Sub |
+        aws lambda invoke --function-name 'vaultdb--deployment-util-${ApplicationName}' --payload '{ "Bucket": "test_bucket", "path": "tes" }' lambda-output.txt --cli-binary-format raw-in-base64-out
+        
