@@ -14,6 +14,12 @@ Parameters:
     Type: String
     Description: Vaultdb Artifact store.
 
+  AdminEmail:
+    Description: VaultDB Admin Email for default database user notifications
+    Type: String
+    AllowedPattern: '[^@]+@[^@]+\.[^@]+'
+    Default: vaultdb@outlook.com
+
 Resources:
   ExecuteUtilRole:
     Type: AWS::IAM::Role
@@ -67,6 +73,7 @@ Resources:
       Environment:
         Variables:
           application_name: !Sub "${ApplicationName}"
+          admin_email: !Sub "${AdminEmail}"
           aws_region: !Sub '${AWS::Region}'
           user_pool_id:
             Fn::ImportValue: !Sub "${ApplicationName}-UserPool"
@@ -103,11 +110,13 @@ Resources:
 
           def create_welcome_page(destination_bucket):
             logger.info("Creating Welcome page!")                  
+            application_name = os.environ['application_name']
+            admin_email = os.environ['admin_email']
             response = s3.get_object(Bucket=bucket, Key="welcome_template.html")
             template = response['Body'].read().decode('utf-8')
             data = {
-              "name": "Tom Thumb",
-              "phone": "0123456789"
+              "name": application_name,
+              "email": admin_email
             }
             welcomehtml = pystache.render(template, data)
             welcomeobject = s3.Object(bucket_name=destination_bucket, key='index.html')
@@ -115,6 +124,7 @@ Resources:
             logger.info("Created Welcome page!")                  
 
           def create_pool_cofig(destination_bucket):
+            application_name = os.environ['application_name']
             aws_region = os.environ['aws_region']
             user_pool_id = os.environ['user_pool_id']
             user_pool_client_id = os.environ['user_pool_client_id']

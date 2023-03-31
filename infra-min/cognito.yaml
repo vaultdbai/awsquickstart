@@ -163,6 +163,21 @@ Resources:
                 "cognito-identity.amazonaws.com:aud": !Ref IdentityPool
               "ForAnyValue:StringLike":
                 "cognito-identity.amazonaws.com:amr": authenticated
+      Policies:
+        - PolicyName: !Join ['', ['vaultdb', '-AdminUserRolePolicies-', !Ref ApplicationName]]
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement:       
+              - Effect: "Allow"
+                Action:
+                  - "mobileanalytics:PutEvents"
+                  - "cognito-sync:*"
+                  - "cognito-identity:*"
+                Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource: "*"
 
   VaultDBUserRole:
     Type: "AWS::IAM::Role"
@@ -184,27 +199,21 @@ Resources:
                 "cognito-identity.amazonaws.com:aud": !Ref IdentityPool
               "ForAnyValue:StringLike":
                 "cognito-identity.amazonaws.com:amr": authenticated
-
-  VaultDBUserRolePolicies:
-    Type: "AWS::IAM::ManagedPolicy"
-    Properties:
-      ManagedPolicyName: !Join ['', ['vaultdb', '-EndUserRolePolicies-', !Ref ApplicationName]]
-      Roles:
-        - !Ref VaultDBAdminRole
-        - !Ref VaultDBUserRole
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:       
-          - Effect: "Allow"
-            Action:
-              - "mobileanalytics:PutEvents"
-              - "cognito-sync:*"
-              - "cognito-identity:*"
-            Resource: "*"
-          - Effect: "Allow"
-            Action:
-              - "lambda:InvokeFunction"
-            Resource: "*"
+      Policies:
+        - PolicyName: !Join ['', ['vaultdb', '-UserRolePolicies-', !Ref ApplicationName]]
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement:       
+              - Effect: "Allow"
+                Action:
+                  - "mobileanalytics:PutEvents"
+                  - "cognito-sync:*"
+                  - "cognito-identity:*"
+                Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource: "*"
 
   QueryUserPoolGroup:
     Type: AWS::Cognito::UserPoolGroup

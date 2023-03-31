@@ -139,7 +139,7 @@ Resources:
 
   DeployArtifactStack:
     Type: AWS::CloudFormation::Stack
-    DependsOn: LambdaDeploymentStack
+    DependsOn: CognitoUsersStack
     Properties:
       TemplateURL:
         !Join
@@ -150,4 +150,4 @@ Resources:
       Parameters:
         ApplicationName: !Ref AWS::StackName
         SourceBucketName: !Ref BucketName
-                
+        AdminEmail: !Ref AdminEmail                
