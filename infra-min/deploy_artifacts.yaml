@@ -66,11 +66,14 @@ Resources:
       Timeout: 60
       Environment:
         Variables:
+          application_name: !Sub "${ApplicationName}"
           aws_region: !Sub '${AWS::Region}'
           user_pool_id:
             Fn::ImportValue: !Sub "${ApplicationName}-UserPool"
           user_pool_client_id:
             Fn::ImportValue: !Sub "${ApplicationName}-UserPoolClient"
+          identity_pool_id:
+            Fn::ImportValue: !Sub "${ApplicationName}-IdentityPool"
           source_bucket: !Ref SourceBucketName
           destination_bucket:
             Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
@@ -81,48 +84,66 @@ Resources:
           import json
           import os
           import logging
+          import pystache
           logger = logging.getLogger()
           logger.setLevel(logging.INFO)
 
           s3 = boto3.resource('s3')
 
           def lambda_handler(event, context):
+            logger.info(f"event: {event}!") 
             logger.info("New files uploaded to the source bucket.")                  
             source_bucket = os.environ['source_bucket']
             destination_bucket = os.environ['destination_bucket']
             
             deploy_workbench(source_bucket, destination_bucket)
-            create_pool_cofig(destination_bucket)
-            
+            create_pool_cofig(destination_bucket)            
+            create_welcome_page(destination_bucket)
             return "done"
+
+          def create_welcome_page(destination_bucket):
+            logger.info("Creating Welcome page!")                  
+            response = s3.get_object(Bucket=bucket, Key="welcome_template.html")
+            template = response['Body'].read().decode('utf-8')
+            data = {
+              "name": "Tom Thumb",
+              "phone": "0123456789"
+            }
+            welcomehtml = pystache.render(template, data)
+            welcomeobject = s3.Object(bucket_name=destination_bucket, key='index.html')
+            welcomeobject.put(Body=welcomehtml)            
+            logger.info("Created Welcome page!")                  
 
           def create_pool_cofig(destination_bucket):
             aws_region = os.environ['aws_region']
             user_pool_id = os.environ['user_pool_id']
             user_pool_client_id = os.environ['user_pool_client_id']
+            identity_pool_id = os.environ['identity_pool_id']
 
             logger.info(f"Creating workbench config file for pool {user_pool_id}!") 
             
-            data_string = f"""const config = {{
-              "REGION": "{aws_region}",
-              "USER_POOL_ID": "{aws_region}",
-              "USER_POOL_APP_CLIENT_ID": "{user_pool_client_id}"
-            }};"""
+            data_string = f"""
+              window.APPLICATION_NAME = "{application_name}";
+              window.REGION = "{aws_region}";
+              window.USER_POOL_ID= "{aws_region}";
+              window.USER_POOL_APP_CLIENT_ID="{user_pool_client_id}";
+              window.USER_IDENTITY_POOL_ID="{identity_pool_id}";
+              """
             
             s3 = boto3.resource('s3')
-            object = s3.Object(bucket_name=destination_bucket, key='config.js')
+            object = s3.Object(bucket_name=destination_bucket, key='workbench/config.js')
             object.put(Body=data_string)            
             logger.info("Created workbench config file!")                  
 
           def deploy_workbench(source_bucket, destination_bucket):
               try:                  
-                for key in s3.meta.client.list_objects(Bucket=source_bucket, Prefix='react-sql-editor')['Contents']:
+                for key in s3.meta.client.list_objects(Bucket=source_bucket, Prefix='workbench/')['Contents']:
                     file = key['Key']
-                    if file=='react-sql-editor/':
+                    if file=='workbench/':
                       continue
                     logger.info(f"Copying file {file}")
                     source = {'Bucket': source_bucket, 'Key': file}
-                    response = s3.meta.client.copy(source, destination_bucket, file.replace('react-sql-editor/', ''))
+                    response = s3.meta.client.copy(source, destination_bucket, file)
                 logger.info("Copied workbench files!")                  
 
               except botocore.exceptions.ClientError as error:
