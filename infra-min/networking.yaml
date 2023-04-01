@@ -99,6 +99,16 @@ Resources:
             - 
               Key: createdBy
               Value: vaultdb.ai
+          SecurityGroupIngress:
+          - IpProtocol: tcp
+            FromPort: 80
+            ToPort: 80
+          - IpProtocol: tcp
+            FromPort: 443
+            ToPort: 443
+          - IpProtocol: tcp
+            FromPort: 2049
+            ToPort: 2049
 
   S3GatewayEndpoint:
     Type: 'AWS::EC2::VPCEndpoint'

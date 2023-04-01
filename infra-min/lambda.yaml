@@ -109,6 +109,7 @@ Resources:
       Code:
         ZipFile: |
             # Imports
+            import boto3
             import os
             import logging
             import random
