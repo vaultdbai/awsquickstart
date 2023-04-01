@@ -35,7 +35,10 @@ Resources:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
-
+      WebsiteConfiguration:
+        IndexDocument: "index.html"
+        ErrorDocument: "error.html"
+        
   PublicBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
