@@ -82,6 +82,17 @@ Resources:
           Permissions: 770
         Path: /commitlog
 
+  VaultDBPythonLayer:
+    Type: "AWS::Lambda::LayerVersion"
+    Properties:
+      LayerName: !Join ['', ['vaultdb', '-python-linux-layer-', !Ref ApplicationName]]
+      CompatibleRuntimes:
+        - python3.8
+      Content:
+        S3Bucket:
+          Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
+        S3Key: 'release/lambda-package.zip'
+
   ExecuteQueryFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -92,13 +103,16 @@ Resources:
       FunctionName: !Join ['', ['vaultdb', '-execute-query-', !Ref ApplicationName]]
       Handler: index.lambda_handler
       MemorySize: 128
-      Runtime: python3.8
       Role: !GetAtt ExecuteRole.Arn
       Timeout: 240
+      Layers:
+        - !Ref VaultDBPythonLayer
+      Runtime: python3.8
       Environment:
         Variables:
           commitlog_directory: '/mnt/commitlog'
-          data_store: !Join ['', ['vaultdb', '-data-', !Ref ApplicationName]]
+          data_store: 
+            Fn::ImportValue: !Sub "${ApplicationName}-DataBucket"
       VpcConfig:
         SecurityGroupIds:
           - Fn::ImportValue: !Sub '${ApplicationName}-DataSecurityGroup'
@@ -108,9 +122,41 @@ Resources:
         - Arn: !GetAtt AccessPointResource.Arn
           LocalMountPath: /mnt/commitlog
       Code:
-        S3Bucket:
-          Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
-        S3Key: 'release/lambda-package.zip'
+        ZipFile: |
+            # Imports
+            import boto3
+            import os
+            import logging
+            import random
+            import string
+
+            # Set up the logger
+            logger = logging.getLogger()
+            logger.setLevel(logging.DEBUG) # Very verbose
+
+            def lambda_handler(event, context):
+                # Ceate file on efs
+                commitlog_directory = os.environ['commitlog_directory']
+                logger.info('commitlog directory: %s', commitlog_directory)                                    
+                player = 'bob'
+                filename = f'{commitlog_directory}/{player}.txt'
+                if os.path.exists(filename):
+                    append_write = 'a' # append if already exists
+                else:
+                    append_write = 'w' # make a new file if not
+                highscore = open(filename, append_write)
+                highscore.write("Username: " + player + '\n')
+                highscore.close()
+
+                # Upload to s3
+                s3 = boto3.resource('s3')
+                data_store = os.environ['data_store']
+                s3.Bucket(data_store).upload_file(filename, f"data/{player}.txt")
+
+                # Generate a random string to ensure no duplicates are put into DDB table
+                randomstring = (''.join(random.choice(string.ascii_letters) for i in range(10)))
+                logger.info('Random string generated: %s', randomstring)                                    
+                return randomstring
 
 Outputs:
   ExecuteRole:

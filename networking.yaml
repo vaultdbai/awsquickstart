@@ -90,25 +90,21 @@ Resources:
             - IpProtocol: tcp
               FromPort: 443
               ToPort: 443
-              CidrIp: 0.0.0.0/0
+              SourceSecurityGroupName: !Join ['', ['vaultdb', '-data-securitygroup-', !Ref ApplicationName]]
             - IpProtocol: tcp
               FromPort: 2049
               ToPort: 2049
-              CidrIp: 0.0.0.0/0
+              SourceSecurityGroupName: !Join ['', ['vaultdb', '-data-securitygroup-', !Ref ApplicationName]]
           Tags:
             - Key: Purpose
               Value: 'VaultDB'    
-            - 
-              Key: Environment
+            - Key: Environment
               Value: !Ref ApplicationName
-            - 
-              Key: Name
+            - Key: Name
               Value: !Join ['', ['vaultdb', '-data-securitygroup-', !Ref ApplicationName]]
-            - 
-              Key: Project
+            - Key: Project
               Value: !Ref ApplicationName
-            - 
-              Key: createdBy
+            - Key: createdBy
               Value: vaultdb.ai
 
   S3GatewayEndpoint:
