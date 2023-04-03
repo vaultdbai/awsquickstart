@@ -62,7 +62,7 @@ Resources:
             Effect: Allow
             Principal: '*'
             Action: 's3:ListBucket'
-            Resource: !Sub arn:aws:s3:::${PublicBucket}/*
+            Resource: !Sub arn:aws:s3:::${PublicBucket}
 
   EFSFileSystem:
       Type: AWS::EFS::FileSystem
