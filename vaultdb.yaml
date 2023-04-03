@@ -5,7 +5,6 @@ Parameters:
     Description: VaultDB Admin Email for default database user notifications
     Type: String
     AllowedPattern: '[^@]+@[^@]+\.[^@]+'
-    Default: vaultdb@outlook.com
 
   PrimarySubnetAZ:
     Type: AWS::EC2::AvailabilityZone::Name
@@ -23,7 +22,6 @@ Parameters:
     
   PrivateSubnetCIDR:
     AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
-    Default: 10.0.20.0/24
     Description: VPC CIDR Block for the Private Subnet (eg 10.0.20.0/24)
     Type: String    
 

@@ -8,8 +8,8 @@
     "ParameterValue": "vaultdb@outlook.com"
   },
   {
-    "ParameterKey": "ExistingVpcID",
-    "ParameterValue": "us-east-1"
+    "ParameterKey": "PrimarySubnetAZ",
+    "ParameterValue": "us-east-1a"
   },
   {
     "ParameterKey": "CidrBlock",
