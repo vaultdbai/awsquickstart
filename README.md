@@ -9,6 +9,10 @@ This repository contains the demo code to install vaultDB AI and Data platform.
 #### Create Cloud Formation Service Role
 
     awsv2 cloudformation create-stack --stack-name vaultdb-service-role --template-body file://service-role.yaml --capabilities CAPABILITY_NAMED_IAM
+
+##### Update Service Role
+
+    awsv2 cloudformation update-stack --stack-name vaultdb-service-role --template-body file://service-role.yaml --capabilities CAPABILITY_NAMED_IAM
     
 ### Deploy 
 
@@ -27,6 +31,15 @@ This repository contains the demo code to install vaultDB AI and Data platform.
             Provide the VPC ID if you have one and wants to use that otherwise remove the parameter all together or provide empty value
         VPC-CIDR-BLOCK
             10.0.0.0/16
+
+##### Example
+
+awsv2 cloudformation create-stack `
+--stack-name dev `
+--role-arn "arn:aws:cloudformation:us-east-1:457538873532:stack/vaultdb-service-role/cb3757f0-d24d-11ed-9703-0ab9ea6915a5" 
+--template-url file://vaultdb.yaml `
+--parameters AdminEmail=vaultdb@outlook.com,CidrBlock=10.0.0.0/16,PrivateSubnetCIDR=10.0.20.0/24,BucketName=vaultdb-hosted-content `
+--capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND
 
 ## License
 
