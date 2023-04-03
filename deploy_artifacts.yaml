@@ -110,11 +110,11 @@ Resources:
                   if event['RequestType'] == 'Delete':
                       for obj in s3.Bucket(public_bucket).objects.filter():
                           s3.Object(public_bucket, obj.key).delete()
-                    try:
-                      for obj in s3.Bucket(data_bucket).objects.filter():
-                          s3.Object(data_bucket, obj.key).delete()
-                    except Exception as e2:
-                        print(e2)
+                      try:
+                          for obj in s3.Bucket(data_bucket).objects.filter():
+                              s3.Object(data_bucket, obj.key).delete()
+                      except Exception as e2:
+                          print(e2)
                   else:
                       logger.info("New files uploaded to the source bucket.")
                       deploy_folder(source_bucket, public_bucket, folder_name='workbench/')
