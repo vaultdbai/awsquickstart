@@ -11,7 +11,7 @@ env:
 jobs:
   Deploy:
     name: Deploy Vaultdb Analytics and Datalake
-    runs-on: ${{ fromJSON('["ubuntu-latest", "self-hosted"]')[github.repository == 'vaultdbai/awsquickstart'] }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
         with:
