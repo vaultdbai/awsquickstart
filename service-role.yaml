@@ -173,6 +173,7 @@ Resources:
                   - s3:PutBucketLogging
                   - s3:PutBucketPolicy
                   - S3:PutBucketWebsite
+                  - s3:PutBucketTagging
                 Resource: "*"
               - Effect: Allow
                 Action:
