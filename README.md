@@ -36,7 +36,7 @@ This repository contains the demo code to install vaultDB AI and Data platform.
 
 ###### create
 
-awsv2 cloudformation create-stack --stack-name dev --role-arn "arn:aws:iam::457538873532:role/vaultdb_cloudformation_service_role" --template-url https://vaultdb-hosted-content.s3.us-east-2.amazonaws.com/awsquickstart/vaultdb.yaml --parameters ParameterKey="AdminEmail",ParameterValue="vaultdb@outlook.com" ParameterKey="PrimarySubnetAZ",ParameterValue="us-east-1a" ParameterKey="CidrBlock",ParameterValue="10.0.0.0/16" ParameterKey="PrivateSubnetCIDR",ParameterValue="10.0.20.0/24" ParameterKey="BucketName",ParameterValue="vaultdb-hosted-content" --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND
+awsv2 cloudformation create-stack --stack-name dev --role-arn "arn:aws:iam::[ACCOUNT-NUMBER]:role/vaultdb_cloudformation_service_role" --template-url https://vaultdb-hosted-content.s3.us-east-2.amazonaws.com/awsquickstart/vaultdb.yaml --parameters ParameterKey="AdminEmail",ParameterValue="vaultdb@outlook.com" ParameterKey="PrimarySubnetAZ",ParameterValue="us-east-1a" ParameterKey="CidrBlock",ParameterValue="10.0.0.0/16" ParameterKey="PrivateSubnetCIDR",ParameterValue="10.0.20.0/24" ParameterKey="BucketName",ParameterValue="vaultdb-hosted-content" --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND
 
 ###### Delete
 
