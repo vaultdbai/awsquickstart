@@ -14,7 +14,7 @@ This repository contains the demo code to install vaultDB AI and Data platform.
 
 #### Deploy VaultDB
 
-    awsv2 cloudformation create-stack --stack-name [APPLICATIONNAME] --role-arn [ROLE-ARN-FROM-STEP-ABOVE] --template-url file://vaultdb.yaml --parameters AdminEmail=[ADMIN-EMAIL-ADDRESS],ExistingVpcID=[VPC-ID-IF-YOU-HAVE-ONE-ELSE-SEND-EMPTY],CidrBlock=[VPC-CIDR-BLOCK],PrivateSubnetCIDR=[10.0.20.0/24],BucketName=vaultdb-hosted-content --capabilities CAPABILITY_NAMED_IAM, CAPABILITY_AUTO_EXPAND
+    awsv2 cloudformation create-stack --stack-name [APPLICATIONNAME] --role-arn [ROLE-ARN-FROM-STEP-ABOVE] --template-url file://vaultdb.yaml --parameters AdminEmail=[ADMIN-EMAIL-ADDRESS],ExistingVpcID=[VPC-ID-IF-YOU-HAVE-ONE-ELSE-SEND-EMPTY],CidrBlock=[VPC-CIDR-BLOCK],PrivateSubnetCIDR=[10.0.20.0/24],BucketName=vaultdb-hosted-content --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND
 
     Values you can use:-- 
         APPLICATIONNAME
