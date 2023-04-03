@@ -1,31 +1,19 @@
 [
   {
     "ParameterKey": "ApplicationName",
-    "ParameterValue": "VaultDB"
-  },
-  {
-    "ParameterKey": "Domain",
-    "ParameterValue": "vaultdb.ai"
-  },
-  {
-    "ParameterKey": "SigningKeyParameter",
-    "ParameterValue": "/system/signing-key/default"
-  },
-  {
-    "ParameterKey": "SigningKeyParameterKeyId",
-    "ParameterValue": "vaultdb.ai"
-  },
-  {
-    "ParameterKey": "CloudFrontHostedZoneId",
-    "ParameterValue": "Z2FDTNDATAQYW2"
+    "ParameterValue": "prod"
   },
   {
     "ParameterKey": "PrimarySubnetAZ",
     "ParameterValue": "us-east-1"
   },
   {
-    "ParameterKey": "FailoverSubnetAZ",
-    "ParameterValue": ""
+    "ParameterKey": "CidrBlock",
+    "ParameterValue": "10.0.0.0/16"
+  },
+  {
+    "ParameterKey": "PrivateSubnetCIDR",
+    "ParameterValue": "10.0.20.0/24"
   },
   {
     "ParameterKey": "VPCState",
