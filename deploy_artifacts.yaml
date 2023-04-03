@@ -82,8 +82,10 @@ Resources:
           identity_pool_id:
             Fn::ImportValue: !Sub "${ApplicationName}-IdentityPool"
           source_bucket: !Ref SourceBucketName
-          destination_bucket:
+          public_bucket:
             Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
+          data_bucket:
+            Fn::ImportValue: !Sub "${ApplicationName}-DataBucket"
       Code:
         ZipFile: |
           import boto3
@@ -98,25 +100,28 @@ Resources:
 
           s3 = boto3.resource('s3')
           source_bucket = os.environ['source_bucket']
-          destination_bucket = os.environ['destination_bucket']
+          public_bucket = os.environ['public_bucket']
+          data_bucket = os.environ['data_bucket']
 
           def lambda_handler(event, context):
               try:
                   logger.info(f"event: {event}!")               
                   if event['RequestType'] == 'Delete':
-                      for obj in s3.Bucket(destination_bucket).objects.filter():
-                          s3.Object(destination_bucket, obj.key).delete()
+                      for obj in s3.Bucket(public_bucket).objects.filter():
+                          s3.Object(public_bucket, obj.key).delete()
+                      for obj in s3.Bucket(data_bucket).objects.filter():
+                          s3.Object(data_bucket, obj.key).delete()
                   else:
                       logger.info("New files uploaded to the source bucket.")
-                      deploy_workbench(source_bucket, destination_bucket)
-                      create_pool_cofig(destination_bucket)            
-                      create_welcome_page(destination_bucket)
+                      deploy_workbench(source_bucket, public_bucket)
+                      create_pool_cofig(public_bucket)            
+                      create_welcome_page(public_bucket)
                   cfnresponse.send(event, context, cfnresponse.SUCCESS, {'result':'success'}, "CustomResourcePhysicalID")
               except Exception as e:
                   print(e)
                   cfnresponse.send(event, context, cfnresponse.FAILED, {'error':str(e)}, "CustomResourcePhysicalID")
 
-          def create_welcome_page(destination_bucket):
+          def create_welcome_page(public_bucket):
               logger.info("Creating Welcome page!")                  
               application_name = os.environ['application_name']
               admin_email = os.environ['admin_email']
@@ -132,11 +137,11 @@ Resources:
               except:
                   logger.info("template error")    
                   
-              welcomeobject = s3.Object(bucket_name=destination_bucket, key='index.html')
+              welcomeobject = s3.Object(bucket_name=public_bucket, key='index.html')
               welcomeobject.put(Body=welcomehtml)            
               logger.info("Created Welcome page!")                  
 
-          def create_pool_cofig(destination_bucket):
+          def create_pool_cofig(public_bucket):
               application_name = os.environ['application_name']
               aws_region = os.environ['aws_region']
               user_pool_id = os.environ['user_pool_id']
@@ -152,11 +157,11 @@ Resources:
               window.USER_IDENTITY_POOL_ID= "{identity_pool_id}";
               """
 
-              object = s3.Object(bucket_name=destination_bucket, key='workbench/config.js')
+              object = s3.Object(bucket_name=public_bucket, key='workbench/config.js')
               object.put(Body=data_string)            
               logger.info("Created workbench config file!")                  
 
-          def deploy_workbench(source_bucket, destination_bucket):
+          def deploy_workbench(source_bucket, public_bucket):
               try:                  
                   for key in s3.meta.client.list_objects(Bucket=source_bucket, Prefix='workbench/')['Contents']:
                       file = key['Key']
@@ -164,7 +169,7 @@ Resources:
                           continue
                       logger.info(f"Copying file {file}")
                       source = {'Bucket': source_bucket, 'Key': file}
-                      response = s3.meta.client.copy(source, destination_bucket, file)
+                      response = s3.meta.client.copy(source, public_bucket, file)
                   logger.info("Copied workbench files!")
               except botocore.exceptions.ClientError as error:
                   logger.error("There was an error copying the file to the destination bucket")

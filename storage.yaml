@@ -22,6 +22,9 @@ Resources:
     Type: "AWS::S3::Bucket"
     Properties:
       BucketName: !Join ['', ['vaultdb', '-data-', !Ref ApplicationName]]
+      Tags:
+        - Key: Purpose
+          Value: 'VaultDB'
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -31,6 +34,9 @@ Resources:
     Type: "AWS::S3::Bucket"
     Properties:
       BucketName: !Join ['', ['vaultdb', '-public-storage-', !Ref ApplicationName]]
+      Tags:
+        - Key: Purpose
+          Value: 'VaultDB'
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -52,6 +58,11 @@ Resources:
             Principal: '*'
             Action: 's3:GetObject'
             Resource: !Sub arn:aws:s3:::${PublicBucket}/*
+          - Sid: AddPermlist
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:ListBucket'
+            Resource: !Sub arn:aws:s3:::${PublicBucket}/*
 
   EFSFileSystem:
       Type: AWS::EFS::FileSystem
@@ -64,6 +75,8 @@ Resources:
           PerformanceMode: generalPurpose
           ThroughputMode: bursting
           FileSystemTags: 
+            - Key: Purpose
+              Value: 'VaultDB'
             - 
               Key: Environment
               Value: !Ref ApplicationName
