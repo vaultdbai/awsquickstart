@@ -86,7 +86,18 @@ Resources:
           GroupName: !Join ['', ['vaultdb', '-data-securitygroup-', !Ref ApplicationName]]
           VpcId:
             Fn::ImportValue: !Sub '${ApplicationName}-VPC'
+          SecurityGroupIngress:
+            - IpProtocol: tcp
+              FromPort: 443
+              ToPort: 443
+              CidrIp: 0.0.0.0/0
+            - IpProtocol: tcp
+              FromPort: 2049
+              ToPort: 2049
+              CidrIp: 0.0.0.0/0
           Tags:
+            - Key: Purpose
+              Value: 'VaultDB'    
             - 
               Key: Environment
               Value: !Ref ApplicationName
@@ -99,16 +110,6 @@ Resources:
             - 
               Key: createdBy
               Value: vaultdb.ai
-          SecurityGroupIngress:
-          - IpProtocol: tcp
-            FromPort: 80
-            ToPort: 80
-          - IpProtocol: tcp
-            FromPort: 443
-            ToPort: 443
-          - IpProtocol: tcp
-            FromPort: 2049
-            ToPort: 2049
 
   S3GatewayEndpoint:
     Type: 'AWS::EC2::VPCEndpoint'

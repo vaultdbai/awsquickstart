@@ -108,7 +108,8 @@ Resources:
         - Arn: !GetAtt AccessPointResource.Arn
           LocalMountPath: /mnt/commitlog
       Code:
-        S3Bucket: !Sub "${ApplicationName}-PublicBucket"
+        S3Bucket:
+          Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
         S3Key: 'release/lambda-package.zip'
 
 Outputs:
