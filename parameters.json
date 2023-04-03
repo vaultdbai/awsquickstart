@@ -4,7 +4,11 @@
     "ParameterValue": "prod"
   },
   {
-    "ParameterKey": "PrimarySubnetAZ",
+    "ParameterKey": "AdminEmail",
+    "ParameterValue": "vaultdb@outlook.com"
+  },
+  {
+    "ParameterKey": "ExistingVpcID",
     "ParameterValue": "us-east-1"
   },
   {
@@ -16,7 +20,7 @@
     "ParameterValue": "10.0.20.0/24"
   },
   {
-    "ParameterKey": "VPCState",
-    "ParameterValue": "existing"
+    "ParameterKey": "BucketName",
+    "ParameterValue": "vaultdb-hosted-content"
   }  
 ]
