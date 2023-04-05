@@ -1,6 +1,6 @@
-# vaultDB AI Modeling platform
+# VaultDB Modeling platform
 
-This repository contains the demo code to install vaultDB AI and Data platform.
+This repository contains the VaultDB ai platform aws quickstart templates.
 
 ## Setup Environment
 
