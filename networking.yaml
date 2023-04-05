@@ -86,26 +86,31 @@ Resources:
           GroupName: !Join ['', ['vaultdb', '-data-securitygroup-', !Ref ApplicationName]]
           VpcId:
             Fn::ImportValue: !Sub '${ApplicationName}-VPC'
-          SecurityGroupIngress:
-            - IpProtocol: tcp
-              FromPort: 443
-              ToPort: 443
-              SourceSecurityGroupName: !Join ['', ['vaultdb', '-data-securitygroup-', !Ref ApplicationName]]
-            - IpProtocol: tcp
-              FromPort: 2049
-              ToPort: 2049
-              SourceSecurityGroupName: !Join ['', ['vaultdb', '-data-securitygroup-', !Ref ApplicationName]]
           Tags:
             - Key: Purpose
               Value: 'VaultDB'    
-            - Key: Environment
-              Value: !Ref ApplicationName
-            - Key: Name
-              Value: !Join ['', ['vaultdb', '-data-securitygroup-', !Ref ApplicationName]]
             - Key: Project
               Value: !Ref ApplicationName
             - Key: createdBy
               Value: vaultdb.ai
+
+  EFSInboundRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: 2049
+      ToPort: 2049
+      SourceSecurityGroupId: !GetAtt DataSecurityGroup.GroupId
+      GroupId: !GetAtt DataSecurityGroup.GroupId
+
+  S3InboundRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: 443
+      ToPort: 443
+      SourceSecurityGroupId: !GetAtt DataSecurityGroup.GroupId
+      GroupId: !GetAtt DataSecurityGroup.GroupId
 
   S3GatewayEndpoint:
     Type: 'AWS::EC2::VPCEndpoint'
@@ -136,6 +141,18 @@ Resources:
           SecurityGroupIds:
             - !Ref DataSecurityGroup
 
+  StsGatewayEndpoint:
+      Type: 'AWS::EC2::VPCEndpoint'
+      Properties:
+          VpcEndpointType: Interface
+          ServiceName: !Sub 'com.amazonaws.${AWS::Region}.sts'
+          VpcId:
+            Fn::ImportValue: !Sub '${ApplicationName}-VPC'
+          SubnetIds: 
+            - !Ref VPCPrivateSubnetA
+          SecurityGroupIds:
+            - !Ref DataSecurityGroup
+            
 Outputs:
   PrivateSubnet:
     Value: !Ref VPCPrivateSubnetA

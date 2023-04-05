@@ -77,17 +77,9 @@ Resources:
           FileSystemTags: 
             - Key: Purpose
               Value: 'VaultDB'
-            - 
-              Key: Environment
+            - Key: Project
               Value: !Ref ApplicationName
-            - 
-              Key: Name
-              Value: !Join ['', ['vaultdb', '-EFS-', !Ref ApplicationName]]
-            - 
-              Key: Project
-              Value: !Ref ApplicationName
-            - 
-              Key: createdBy
+            - Key: createdBy
               Value: vaultdb.ai
 
   EFSMountTarget:
