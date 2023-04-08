@@ -188,6 +188,28 @@ Resources:
                     "s3:ResourceTag/Purpose": "VaultDB"
               - Effect: Allow
                 Action:
+                  - events:DescribeRule
+                  - events:PutRule
+                  - events:PutEvents
+                  - events:PutTargets
+                  - events:PutPermission
+                  - events:ListRuleNamesByTarget
+                  - events:ListRules
+                  - events:ListRules
+                Resource: "arn:aws:events:*:*:*"
+              - Effect: Allow
+                Action:
+                  - events:DeleteRule
+                  - events:EnableRule
+                  - events:RemovePermission
+                  - events:RemoveTargets
+                  - events:DisableRule
+                Resource: "arn:aws:events:*:*:rule/[*/]*"
+                Condition:
+                  StringEquals:
+                    "s3:ResourceTag/Purpose": "VaultDB"
+              - Effect: Allow
+                Action:
                   - iam:GetRole
                   - iam:CreateRole
                   - iam:CreatePolicy

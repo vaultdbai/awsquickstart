@@ -141,18 +141,6 @@ Resources:
           SecurityGroupIds:
             - !Ref DataSecurityGroup
 
-  StsGatewayEndpoint:
-      Type: 'AWS::EC2::VPCEndpoint'
-      Properties:
-          VpcEndpointType: Interface
-          ServiceName: !Sub 'com.amazonaws.${AWS::Region}.sts'
-          VpcId:
-            Fn::ImportValue: !Sub '${ApplicationName}-VPC'
-          SubnetIds: 
-            - !Ref VPCPrivateSubnetA
-          SecurityGroupIds:
-            - !Ref DataSecurityGroup
-            
 Outputs:
   PrivateSubnet:
     Value: !Ref VPCPrivateSubnetA

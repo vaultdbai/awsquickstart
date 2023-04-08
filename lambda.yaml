@@ -114,6 +114,8 @@ Resources:
         - x86_64
       Environment:
         Variables:
+          aws_region: !Sub '${AWS::Region}'
+          AWS_STS_REGIONAL_ENDPOINTS: 'regional'
           commitlog_directory: '/mnt/commitlog'
           data_store: 
             Fn::ImportValue: !Sub "${ApplicationName}-DataBucket"
@@ -127,44 +129,65 @@ Resources:
           LocalMountPath: /mnt/commitlog
       Code:
         ZipFile: |
-            # Imports
-            import boto3
-            import os
-            import logging
-            import random
-            import string
+          import os
+          import logging
+          import json
 
-            # Set up the logger
-            logger = logging.getLogger()
-            logger.setLevel(logging.DEBUG) # Very verbose
+          # Set up the logger
+          logger = logging.getLogger()
+          logger.setLevel(logging.DEBUG) # Very verbose
 
-            def lambda_handler(event, context):
-                # Test sts
-                sts_client = boto3.client('sts')
-                logger.info('User Identity: %s', sts_client.get_caller_identity())
-                
-                # Ceate file on efs
-                commitlog_directory = os.environ['commitlog_directory']
-                logger.info('commitlog directory: %s', commitlog_directory)                                    
-                player = 'bob'
-                filename = f'{commitlog_directory}/{player}.txt'
-                if os.path.exists(filename):
-                    append_write = 'a' # append if already exists
-                else:
-                    append_write = 'w' # make a new file if not
-                highscore = open(filename, append_write)
-                highscore.write("Username: " + player + '\n')
-                highscore.close()
+          aws_region = os.environ['aws_region']
+          commitlog_directory = os.environ['commitlog_directory']
+          data_store = os.environ['data_store']
+          keys = None
 
-                # Upload to s3
-                s3 = boto3.resource('s3')
-                data_store = os.environ['data_store']
-                s3.Bucket(data_store).upload_file(filename, f"data/{player}.txt")
+          def get_keys():
+              import boto3
+              global keys
+              if keys:
+                  return keys
+              s3 = boto3.resource('s3')
+              obj = s3.meta.client.get_object(Bucket=data_store, Key="jwks.json")
+              keys = json.loads(obj['Body'].read())['keys']
+              return keys
+              
+          get_keys()
 
-                # Generate a random string to ensure no duplicates are put into DDB table
-                randomstring = (''.join(random.choice(string.ascii_letters) for i in range(10)))
-                logger.info('Random string generated: %s', randomstring)                                    
-                return randomstring
+          def lambda_handler(event, context):
+              logger.info('commitlog directory: %s', commitlog_directory)
+              return get_keys()
+              # return attributes(context)
+
+          def test_efs(context):
+              # Ceate file on efs
+              filename = f'{commitlog_directory}/test.txt'
+              if os.path.exists(filename):
+                  append_write = 'a' # append if already exists
+              else:
+                  append_write = 'w' # make a new file if not
+              highscore = open(filename, append_write)
+              highscore.write("IdentityId: " + context.identity.cognito_identity_id + '\n')
+              highscore.write("IdentityPoolId: " + context.identity.cognito_identity_pool_id + '\n')
+              highscore.close()
+
+          def test_s3(context):
+              # Upload to s3
+              import boto3
+              filename = f'{commitlog_directory}/test.txt'
+              s3 = boto3.resource('s3')
+              s3.Bucket(data_store).upload_file(filename, f"data/test.txt")
+
+          def attributes(obj):
+              from inspect import getmembers
+              from types import FunctionType
+              disallowed_names = {
+                name for name, value in getmembers(type(obj)) 
+                  if isinstance(value, FunctionType)}
+              return {
+                name: attributes(getattr(obj, name)) if name=='identity' else getattr(obj, name) for name in dir(obj) 
+                  if name[:2] != '__' and name not in disallowed_names and hasattr(obj, name)}
+
 
 Outputs:
   ExecuteRole:

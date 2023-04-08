@@ -75,6 +75,7 @@ Resources:
         Variables:
           application_name: !Sub "${ApplicationName}"
           admin_email: !Sub "${AdminEmail}"
+          AWS_STS_REGIONAL_ENDPOINTS: 'regional'
           aws_region: !Sub '${AWS::Region}'
           user_pool_id:
             Fn::ImportValue: !Sub "${ApplicationName}-UserPool"
@@ -92,14 +93,15 @@ Resources:
           import boto3
           import cfnresponse
           import botocore
-          import json
           import os
-          import logging
+          import logging          
 
           logger = logging.getLogger()
           logger.setLevel(logging.INFO)
 
           s3 = boto3.resource('s3')
+          aws_region = os.environ['aws_region']
+          user_pool_id = os.environ['user_pool_id']
           source_bucket = os.environ['source_bucket']
           public_bucket = os.environ['public_bucket']
           data_bucket = os.environ['data_bucket']
@@ -115,16 +117,29 @@ Resources:
                               s3.Object(data_bucket, obj.key).delete()
                       except Exception as e2:
                           print(e2)
+                  elif event['RequestType'] == 'Refresh':
+                      create_public_keys(data_bucket)
                   else:
                       logger.info("New files uploaded to the source bucket.")
                       deploy_folder(source_bucket, public_bucket, folder_name='workbench/')
                       deploy_folder(source_bucket, public_bucket, folder_name='release/')
                       create_pool_cofig(public_bucket)            
                       create_welcome_page(public_bucket)
+                      create_public_keys(data_bucket)
                   cfnresponse.send(event, context, cfnresponse.SUCCESS, {'result':'success'}, "CustomResourcePhysicalID")
               except Exception as e:
                   print(e)
                   cfnresponse.send(event, context, cfnresponse.FAILED, {'error':str(e)}, "CustomResourcePhysicalID")
+
+          def create_public_keys(data_bucket):
+              import urllib.request
+              logger.info("Creating JWT Public Keys Json!")
+              keys_url = 'https://cognito-idp.{}.amazonaws.com/{}/.well-known/jwks.json'.format(aws_region, user_pool_id)
+              with urllib.request.urlopen(keys_url) as f:
+                  response = f.read()                  
+              keysobject = s3.Object(bucket_name=data_bucket, key='jwks.json')
+              keysobject.put(Body=response.decode('utf-8'))            
+              logger.info("Created JWT Public Keys!")                  
 
           def create_welcome_page(public_bucket):
               logger.info("Creating Welcome page!")                  
@@ -147,9 +162,7 @@ Resources:
               logger.info("Created Welcome page!")                  
 
           def create_pool_cofig(public_bucket):
-              application_name = os.environ['application_name']
-              aws_region = os.environ['aws_region']
-              user_pool_id = os.environ['user_pool_id']
+              application_name = os.environ['application_name']              
               user_pool_client_id = os.environ['user_pool_client_id']
               identity_pool_id = os.environ['identity_pool_id']
 
@@ -183,7 +196,25 @@ Resources:
                   logger.error("Missing required parameters while calling the API.")
                   print('Error Message: {}'.format(error))
 
-        
+  ScheduledRule: 
+    Type: AWS::Events::Rule
+    Properties: 
+      Description: "Scheduled Key Refresh"
+      ScheduleExpression: "cron(15 10 ? * 6L *)"
+      State: "ENABLED"
+      Targets:
+        - Arn: !GetAtt DeploymentUtilFunction.Arn
+          Id: 'UpdateKeysWeekly'
+          Input: '{"RequestType":  "Refresh"}'
+
+  PermissionForEventsToInvokeLambda: 
+    Type: AWS::Lambda::Permission
+    Properties: 
+      FunctionName: !Ref DeploymentUtilFunction
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt DeploymentUtilFunction.Arn
+
   DeployInvoke:
     Type: AWS::CloudFormation::CustomResource
     DependsOn: DeploymentUtilFunction
