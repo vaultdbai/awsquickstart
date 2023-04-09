@@ -195,14 +195,14 @@ Resources:
                   - events:PutPermission
                   - events:ListRuleNamesByTarget
                   - events:ListRules
-                  - events:ListRules
+                  - events:ListTargets
+                  - events:RemoveTargets
                 Resource: "arn:aws:events:*:*:*"
               - Effect: Allow
                 Action:
                   - events:DeleteRule
                   - events:EnableRule
                   - events:RemovePermission
-                  - events:RemoveTargets
                   - events:DisableRule
                 Resource: "arn:aws:events:*:*:rule/[*/]*"
                 Condition:
