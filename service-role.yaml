@@ -49,6 +49,10 @@ Resources:
                   - ec2:DescribeNetworkInterfaceAttribute
                   - ec2:DescribeNetworkInterfacePermissions
                   - ec2:DescribeNetworkInterfaces
+                  - ec2:CreateNetworkInterface
+                  - ec2:AttachNetworkInterface
+                  - autoscaling:CompleteLifecycleAction
+                  - ec2:DeleteNetworkInterface
                   - ec2:DescribePrefixLists
                   - ec2:DescribeRouteTables
                   - ec2:DescribeSecurityGroupReferences
