@@ -9,11 +9,20 @@ This repository contains the VaultDB ai platform aws quickstart templates.
 #### Create Cloud Formation Service Role
 
     awsv2 cloudformation create-stack --stack-name vaultdb-service-role --template-body file://service-role.yaml --capabilities CAPABILITY_NAMED_IAM
+    
+###### Use File from s3
+    
+    awsv2 cloudformation create-stack --stack-name vaultdb-service-role --template-body https://s3.amazonaws.com/vaultdb-hosted-content/service-role.yaml --capabilities CAPABILITY_NAMED_IAM
+    
 
 ##### Update Service Role
 
     awsv2 cloudformation update-stack --stack-name vaultdb-service-role --template-body file://service-role.yaml --capabilities CAPABILITY_NAMED_IAM
     
+###### Use File from s3
+
+    awsv2 cloudformation create-stack --stack-name vaultdb-service-role --template-body https://s3.amazonaws.com/vaultdb-hosted-content/service-role.yaml --capabilities CAPABILITY_NAMED_IAM
+
 ### Deploy 
 
 #### Deploy VaultDB

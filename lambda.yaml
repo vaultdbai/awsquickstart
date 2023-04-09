@@ -114,11 +114,14 @@ Resources:
         - x86_64
       Environment:
         Variables:
+          application_name: !Sub "${ApplicationName}"
           aws_region: !Sub '${AWS::Region}'
           AWS_STS_REGIONAL_ENDPOINTS: 'regional'
           commitlog_directory: '/mnt/commitlog'
           data_store: 
             Fn::ImportValue: !Sub "${ApplicationName}-DataBucket"
+          user_pool_client_id:
+            Fn::ImportValue: !Sub "${ApplicationName}-UserPoolClient"
       VpcConfig:
         SecurityGroupIds:
           - Fn::ImportValue: !Sub '${ApplicationName}-DataSecurityGroup'
@@ -129,65 +132,101 @@ Resources:
           LocalMountPath: /mnt/commitlog
       Code:
         ZipFile: |
+          # Imports
           import os
           import logging
           import json
+          import vaultdb
 
-          # Set up the logger
-          logger = logging.getLogger()
-          logger.setLevel(logging.DEBUG) # Very verbose
-
-          aws_region = os.environ['aws_region']
-          commitlog_directory = os.environ['commitlog_directory']
-          data_store = os.environ['data_store']
           keys = None
 
-          def get_keys():
+          def get_keys(key_store):
               import boto3
               global keys
               if keys:
                   return keys
               s3 = boto3.resource('s3')
-              obj = s3.meta.client.get_object(Bucket=data_store, Key="jwks.json")
+              obj = s3.meta.client.get_object(Bucket=key_store, Key="jwks.json")
               keys = json.loads(obj['Body'].read())['keys']
               return keys
-              
-          get_keys()
+
+          # Set up the logger
+          logger = logging.getLogger()
+          logger.setLevel(logging.DEBUG) # Very verbose
+
+          application_name = os.environ['application_name'] if "application_name" in os.environ else ""
+          aws_region = os.environ['aws_region'] if "aws_region" in os.environ else "us-east-1"
+          commitlog_directory = os.environ['commitlog_directory'] if "commitlog_directory" in os.environ else "/tmp"
+          data_store = os.environ['data_store'] if "data_store" in os.environ else None
+          app_client_id = os.environ['user_pool_client_id'] if "user_pool_client_id" in os.environ else None
+
+          get_keys(data_store) # Download Public Keys for token verification ahead as we need them for security
 
           def lambda_handler(event, context):
-              logger.info('commitlog directory: %s', commitlog_directory)
-              return get_keys()
-              # return attributes(context)
+              token = event['token']    
+              try:
+                  verified_claims = verify_token(token, data_store, app_client_id)
+                  preferred_role = str(verified_claims['cognito:preferred_role']).split(':role/')[-1]        
+                  logger.info(f'preferred_role: {preferred_role}')
+                  if application_name and preferred_role.endswith(application_name):
+                      preferred_role = preferred_role[:-1*(len(application_name)+1)]
+                  if preferred_role.endswith('-AdminRole'):
+                      preferred_role = preferred_role[:-10]
+                  logger.info(f'role: {preferred_role}')
+                  repo = event['database']
+                  logger.info(f'repo: {repo}')
+                  catalog = event['catalog']
+                  logger.info(f'catalog: {catalog}')
+                  payload = event['payload']
+                  logger.info(f'payload: {payload}')
 
-          def test_efs(context):
-              # Ceate file on efs
-              filename = f'{commitlog_directory}/test.txt'
-              if os.path.exists(filename):
-                  append_write = 'a' # append if already exists
-              else:
-                  append_write = 'w' # make a new file if not
-              highscore = open(filename, append_write)
-              highscore.write("IdentityId: " + context.identity.cognito_identity_id + '\n')
-              highscore.write("IdentityPoolId: " + context.identity.cognito_identity_pool_id + '\n')
-              highscore.close()
+                  connection = vaultdb.connect(f"{commitlog_directory}/{repo}.db", False, preferred_role, config={'allow_unsigned_extensions' : 'true'})
+                  query_result = connection.execute(payload).fetchall()
+                  logger.debug(f'query_result:{query_result}')
+                  return {"result":"Success", "data":str(query_result)}
+              except Exception as ex:
+                  logger.error(ex)
+                  return {"result":"Error", "message":str(ex)}
 
-          def test_s3(context):
-              # Upload to s3
-              import boto3
-              filename = f'{commitlog_directory}/test.txt'
-              s3 = boto3.resource('s3')
-              s3.Bucket(data_store).upload_file(filename, f"data/test.txt")
 
-          def attributes(obj):
-              from inspect import getmembers
-              from types import FunctionType
-              disallowed_names = {
-                name for name, value in getmembers(type(obj)) 
-                  if isinstance(value, FunctionType)}
-              return {
-                name: attributes(getattr(obj, name)) if name=='identity' else getattr(obj, name) for name in dir(obj) 
-                  if name[:2] != '__' and name not in disallowed_names and hasattr(obj, name)}
-
+          def verify_token(token, key_store, app_client_id):
+              import time
+              from jose import jwk, jwt
+              from jose.utils import base64url_decode
+              # get the kid from the headers prior to verification
+              headers = jwt.get_unverified_headers(token)
+              kid = headers['kid']
+              # search for the kid in the downloaded public keys
+              key_index = -1
+              for i in range(len(get_keys(key_store))):
+                  if kid == keys[i]['kid']:
+                      key_index = i
+                      break
+              if key_index == -1:
+                  raise Exception('Public key not found in jwks.json')
+              # construct the public key
+              public_key = jwk.construct(keys[key_index])
+              # get the last two sections of the token,
+              # message and signature (encoded in base64)
+              message, encoded_signature = str(token).rsplit('.', 1)
+              # decode the signature
+              decoded_signature = base64url_decode(encoded_signature.encode('utf-8'))
+              # verify the signature
+              if not public_key.verify(message.encode("utf8"), decoded_signature):
+                  raise Exception('Signature verification failed')
+              logger.info('Signature successfully verified')
+              # since we passed the verification, we can now safely
+              # use the unverified claims
+              claims = jwt.get_unverified_claims(token)
+              # additionally we can verify the token expiration
+              if time.time() > claims['exp']:
+                  raise Exception('Token is expired')
+              # and the Audience  (use claims['client_id'] if verifying an access token)
+              if claims['aud'] != app_client_id:
+                  raise Exception('Token was not issued for this audience')
+              # now we can use the claims
+              logger.info(claims)
+              return claims
 
 Outputs:
   ExecuteRole:
