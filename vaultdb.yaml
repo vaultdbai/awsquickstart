@@ -72,7 +72,7 @@ Resources:
       TemplateURL:
         !Join
           - ''
-          - - 'https://s3.amazonaws.com/'
+          - - 'https://s3.us-east-2.amazonaws.com/'
             - !Ref BucketName
             - '/awsquickstart/vpc.yaml'
       Parameters:
@@ -87,7 +87,7 @@ Resources:
       TemplateURL:
         !Join
           - ''
-          - - 'https://s3.amazonaws.com/'
+          - - 'https://s3.us-east-2.amazonaws.com/'
             - !Ref BucketName
             - '/awsquickstart/networking.yaml'
       Parameters:
@@ -102,7 +102,7 @@ Resources:
       TemplateURL:
         !Join
           - ''
-          - - 'https://s3.amazonaws.com/'
+          - - 'https://s3.us-east-2.amazonaws.com/'
             - !Ref BucketName
             - '/awsquickstart/storage.yaml'
       Parameters:
@@ -115,7 +115,7 @@ Resources:
       TemplateURL:
         !Join
           - ''
-          - - 'https://s3.amazonaws.com/'
+          - - 'https://s3.us-east-2.amazonaws.com/'
             - !Ref BucketName
             - '/awsquickstart/cognito.yaml'
       Parameters:
@@ -129,7 +129,7 @@ Resources:
       TemplateURL:
         !Join
           - ''
-          - - 'https://s3.amazonaws.com/'
+          - - 'https://s3.us-east-2.amazonaws.com/'
             - !Ref BucketName
             - '/awsquickstart/deploy_artifacts.yaml'
       Parameters:
@@ -144,7 +144,7 @@ Resources:
       TemplateURL:
         !Join
           - ''
-          - - 'https://s3.amazonaws.com/'
+          - - 'https://s3.us-east-2.amazonaws.com/'
             - !Ref BucketName
             - '/awsquickstart/lambda.yaml'
       Parameters:

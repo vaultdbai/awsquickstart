@@ -14,7 +14,7 @@
     <h2>Setup Environment</h2>
     <h3>Create Service Role</h3>
     <h4>Create Cloud Formation Service Role</h4>
-    <pre><code>awsv2 cloudformation create-stack --stack-name vaultdb-service-role --template-body https://s3.amazonaws.com/vaultdb-hosted-content/service-role.yaml --capabilities CAPABILITY_NAMED_IAM
+    <pre><code>awsv2 cloudformation create-stack --stack-name vaultdb-service-role --template-body https://vaultdb-hosted-content.s3.us-east-2.amazonaws.com/awsquickstart/service-role.yaml --capabilities CAPABILITY_NAMED_IAM
     </code></pre>
     <h4>Deploy VaultDB</h4>
     <pre><code>awsv2 cloudformation create-stack --stack-name [APPLICATION-STACK-NAME] --role-arn &quot;arn:aws:iam::[AWS-ACCOUNT-NUMBER]:role/vaultdb_cloudformation_service_role&quot; --template-url https://vaultdb-hosted-content.s3.us-east-2.amazonaws.com/awsquickstart/vaultdb.yaml --parameters ParameterKey=&quot;AdminEmail&quot;,ParameterValue=&quot;[APPLICATION-ADMIN-EMAIL-ADDRESS]&quot; ParameterKey=&quot;PrimarySubnetAZ&quot;,ParameterValue=&quot;us-east-1a&quot; ParameterKey=&quot;CidrBlock&quot;,ParameterValue=&quot;10.0.0.0/16&quot; ParameterKey=&quot;PrivateSubnetCIDR&quot;,ParameterValue=&quot;10.0.20.0/24&quot; ParameterKey=&quot;BucketName&quot;,ParameterValue=&quot;vaultdb-hosted-content&quot; --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND

@@ -195,7 +195,6 @@ Resources:
                   - events:PutPermission
                   - events:ListRuleNamesByTarget
                   - events:ListRules
-                  - events:ListTargets
                   - events:RemoveTargets
                 Resource: "arn:aws:events:*:*:*"
               - Effect: Allow
@@ -224,6 +223,7 @@ Resources:
                   - iam:GetPolicy
                   - iam:ListUserTags
                   - iam:TagUser
+                  - iam:CreateServiceLinkedRole
                 Resource: "*"
               - Effect: Allow
                 Action:
