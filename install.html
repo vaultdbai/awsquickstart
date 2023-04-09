@@ -1,0 +1,39 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1" name="viewport">
+    <meta name="x-apple-disable-message-reformatting">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta content="telephone=no" name="format-detection">
+    <title>VaultDB: Deploy</title>
+</head>
+
+<body>
+    <h1>VaultDB Modeling platform</h1>
+    <p>This repository contains the VaultDB ai platform aws quickstart templates.</p>
+    <h2>Setup Environment</h2>
+    <h3>Create Service Role</h3>
+    <h4>Create Cloud Formation Service Role</h4>
+    <pre><code>awsv2 cloudformation create-stack --stack-name vaultdb-service-role --template-body https://s3.amazonaws.com/vaultdb-hosted-content/service-role.yaml --capabilities CAPABILITY_NAMED_IAM
+    </code></pre>
+    <h4>Deploy VaultDB</h4>
+    <pre><code>awsv2 cloudformation create-stack --stack-name [APPLICATION-STACK-NAME] --role-arn &quot;arn:aws:iam::[AWS-ACCOUNT-NUMBER]:role/vaultdb_cloudformation_service_role&quot; --template-url https://vaultdb-hosted-content.s3.us-east-2.amazonaws.com/awsquickstart/vaultdb.yaml --parameters ParameterKey=&quot;AdminEmail&quot;,ParameterValue=&quot;[APPLICATION-ADMIN-EMAIL-ADDRESS]&quot; ParameterKey=&quot;PrimarySubnetAZ&quot;,ParameterValue=&quot;us-east-1a&quot; ParameterKey=&quot;CidrBlock&quot;,ParameterValue=&quot;10.0.0.0/16&quot; ParameterKey=&quot;PrivateSubnetCIDR&quot;,ParameterValue=&quot;10.0.20.0/24&quot; ParameterKey=&quot;BucketName&quot;,ParameterValue=&quot;vaultdb-hosted-content&quot; --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND
+
+    Values you can use:-- 
+        APPLICATION-STACK-NAME
+            Pick a Uniquename for your installation and append test/dev/uat/prod etc to diffrentiate between different environments.
+        AWS-ACCOUNT-NUMBER
+            AWS Account number
+        APPLICATION-ADMIN-EMAIL-ADDRESS
+            this email will receive the user passwords and instructions on how to start using VAULTDB ai platform.
+        VPC-ID-IF-YOU-HAVE-ONE-ELSE-SEND-EMPTY
+            Provide the VPC ID if you have one and wants to use that otherwise remove the parameter all together or provide empty value
+        VPC-CIDR-BLOCK
+            10.0.0.0/16
+    </code></pre>
+    <h6>Delete/ Uninstall</h6>
+    <p>awsv2 cloudformation delete-stack --stack-name [APPLICATION-STACK-NAME]</p>
+    <h2>License</h2>
+    <p>All Images and Text copyright VaultDB.ai LLC</p>
+</body>
+</html>
