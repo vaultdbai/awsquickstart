@@ -207,7 +207,7 @@ Resources:
                   - events:EnableRule
                   - events:RemovePermission
                   - events:DisableRule
-                Resource: "arn:aws:events:*:*:rule/[*/]*"
+                Resource: "*"
                 Condition:
                   StringEquals:
                     "s3:ResourceTag/Purpose": "VaultDB"

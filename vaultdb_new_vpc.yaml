@@ -12,12 +12,17 @@ Parameters:
     Description: Enter the primary availability zone for your subnet.
 
   ExistingVpcID:
-    Type: AWS::EC2::VPC::Id
-    ConstraintDescription: Please choose VPC ID (For New VPC Use Template vaultdb_new_vpc.yaml).
+    Type: String
+    Default: ''
+    ConstraintDescription: Please enter existing VPC ID to use existing.
+
+  CidrBlock:
+    Description: VPC CIDR Block If Creating new (eg 10.0.0.0/16)
+    Type: String
     
   PrivateSubnetCIDR:
     AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
-    Description: VPC CIDR Block for the Private Subnet (eg 172.31.200.0/20)
+    Description: VPC CIDR Block for the Private Subnet (eg 10.0.20.0/24)
     Type: String    
 
   BucketName:
@@ -37,7 +42,11 @@ Metadata:
           - AdminEmail
           - PrimarySubnetAZ
           - ExistingVpcID
+          - CidrBlock
           - BucketName
+        
+Conditions:
+  IsNewVPC: !Equals [ !Ref ExistingVpcID, '' ]
 
 Rules:
   RequiredParameterAssertions:
@@ -48,6 +57,13 @@ Rules:
         Assert: !Not [!Equals [!Ref PrimarySubnetAZ, '']]
       - AssertDescription: Private Subnet CIDR is required
         Assert: !Not [!Equals [!Ref PrivateSubnetCIDR, '']]
+  CreateNewVPC:
+    RuleCondition: !Equals 
+      - !Ref ExistingVpcID
+      - ''
+    Assertions:        
+      - AssertDescription: CidrBlock is required
+        Assert: !Not [!Equals [!Ref CidrBlock, '']]
 
 Resources:
   VPCStack:
@@ -62,7 +78,7 @@ Resources:
       Parameters:
         ApplicationName: !Ref AWS::StackName
         ExistingVpcID: !Ref ExistingVpcID
-        CidrBlock: "10.0.0.0/16"         
+        CidrBlock: !Ref CidrBlock
         
   NetworkingStack:
     Type: AWS::CloudFormation::Stack
