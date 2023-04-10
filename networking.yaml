@@ -56,8 +56,8 @@ Resources:
         - Key: Name
           Value: !Join
             - ''
-            - - !Ref ApplicationName
-              - '-vaultdb-private-subnet'
+            - - 'vaultdb-private-subnet-'
+              - !Ref ApplicationName
 
   PrivateRouteTable:
     Type: AWS::EC2::RouteTable
@@ -70,8 +70,8 @@ Resources:
         - Key: Name
           Value: !Join
             - ''
-            - - !Ref ApplicationName
-              - '-vaultdb-vpc-Private-Routes'
+            - - 'vaultdb-vpc-Private-Routes-'
+              - !Ref ApplicationName
 
   PrivateSubnetARouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
