@@ -33,7 +33,7 @@ This repository contains the VaultDB ai platform aws quickstart templates.
             AWS Account number
         APPLICATION-ADMIN-EMAIL-ADDRESS
             this email will receive the user passwords and instructions on how to start using VAULTDB ai platform.
-        VPC-ID-IF-YOU-HAVE-ONE-ELSE-SEND-EMPTY
+        VPC-ID
             Provide the VPC ID if you have one and wants to use that otherwise remove the parameter all together or provide empty value
         VPC-CIDR-BLOCK
             10.0.0.0/16
@@ -46,7 +46,7 @@ awsv2 cloudformation delete-stack --stack-name [APPLICATION-STACK-NAME]
 
 ###### create
 
-awsv2 cloudformation create-stack --stack-name dev --role-arn "arn:aws:iam::[AWS-ACCOUNT-NUMBER]:role/vaultdb_cloudformation_service_role" --template-url https://vaultdb-hosted-content.s3.us-east-2.amazonaws.com/awsquickstart/vaultdb.yaml --parameters ParameterKey="AdminEmail",ParameterValue="vaultdb@outlook.com" ParameterKey="PrimarySubnetAZ",ParameterValue="us-east-1a" ParameterKey="CidrBlock",ParameterValue="10.0.0.0/16" ParameterKey="PrivateSubnetCIDR",ParameterValue="10.0.20.0/24" ParameterKey="BucketName",ParameterValue="vaultdb-hosted-content" --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND
+awsv2 cloudformation update-stack --stack-name dev --role-arn "arn:aws:iam::[AWS-ACCOUNT-NUMBER]:role/vaultdb_cloudformation_service_role" --template-url https://vaultdb-hosted-content.s3.us-east-2.amazonaws.com/awsquickstart/vaultdb.yaml --parameters ParameterKey="AdminEmail",ParameterValue="vaultdb@outlook.com" ParameterKey="PrimarySubnetAZ",ParameterValue="us-east-1a" ParameterKey="ExistingVpcID",ParameterValue="vpc-053032fa3ede15b8b" ParameterKey="PrivateSubnetCIDR",ParameterValue="172.31.200.0/20" ParameterKey="BucketName",ParameterValue="vaultdb-hosted-content" --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND
 
 ###### Delete/ Uninstall
 

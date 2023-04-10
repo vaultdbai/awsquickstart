@@ -136,7 +136,9 @@ Resources:
           import os
           import logging
           import json
+          from json import JSONEncoder
           import vaultdb
+          import numpy as np
 
           keys = None
 
@@ -181,12 +183,24 @@ Resources:
                   logger.info(f'payload: {payload}')
 
                   connection = vaultdb.connect(f"{commitlog_directory}/{repo}.db", False, preferred_role, config={'allow_unsigned_extensions' : 'true'})
-                  query_result = connection.execute(payload).fetchall()
+                  query_result = connection.execute(payload).fetchnumpy()
+                  query_result = json.dumps(query_result, cls=NumpyArrayEncoder)
                   logger.debug(f'query_result:{query_result}')
-                  return {"result":"Success", "data":str(query_result)}
+                  return {"result":"Success", "data":query_result}
               except Exception as ex:
                   logger.error(ex)
                   return {"result":"Error", "message":str(ex)}
+
+          class NumpyArrayEncoder(json.JSONEncoder):
+              def default(self, obj):
+                  if isinstance(obj, np.integer):
+                      return int(obj)
+                  elif isinstance(obj, np.floating):
+                      return float(obj)
+                  elif isinstance(obj, np.ndarray):
+                      return obj.tolist()
+                  else:
+                      return super(NumpyArrayEncoder, self).default(obj)
 
           def create_sample_database():
               test_db_path = f"{commitlog_directory}/test.db"
