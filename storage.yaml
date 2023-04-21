@@ -15,16 +15,26 @@ Rules:
   ApplicationNameIsRequired:
     Assertions:
       - AssertDescription: Application Name is required
-        Assert: !Not [!Equals [!Ref ApplicationName, '']]
+        Assert: !Not [!Equals [!Ref ApplicationName, ""]]
 
-Resources:             
+Resources:
   DataBucket:
     Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: !Join ['', ['vaultdb', '-data-', !Sub '${AWS::AccountId}', '-', !Ref ApplicationName]]
+      BucketName:
+        !Join [
+          "",
+          [
+            "vaultdb",
+            "-data-",
+            !Sub "${AWS::AccountId}",
+            "-",
+            !Ref ApplicationName,
+          ],
+        ]
       Tags:
         - Key: Purpose
-          Value: 'VaultDB'
+          Value: "VaultDB"
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -33,63 +43,55 @@ Resources:
   PublicBucket:
     Type: "AWS::S3::Bucket"
     Properties:
-      BucketName: !Join ['', ['vaultdb', '-public-storage-', !Sub '${AWS::AccountId}', '-', !Ref ApplicationName]]
+      BucketName:
+        !Join [
+          "",
+          [
+            "vaultdb",
+            "-public-storage-",
+            !Sub "${AWS::AccountId}",
+            "-",
+            !Ref ApplicationName,
+          ],
+        ]
       Tags:
         - Key: Purpose
-          Value: 'VaultDB'
+          Value: "VaultDB"
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
+      AccessControl: "PublicRead"
       WebsiteConfiguration:
         IndexDocument: "index.html"
         ErrorDocument: "error.html"
-        
-  PublicBucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Ref PublicBucket
-      PolicyDocument:
-        Id: PublicReadPolicy
-        Version: 2012-10-17
-        Statement:
-          - Sid: PublicReadForGetBucketObjects
-            Effect: Allow
-            Principal: '*'
-            Action: 's3:GetObject'
-            Resource: !Sub arn:aws:s3:::${PublicBucket}/*
-          - Sid: AddPermlist
-            Effect: Allow
-            Principal: '*'
-            Action: 's3:ListBucket'
-            Resource: !Sub arn:aws:s3:::${PublicBucket}
 
   EFSFileSystem:
-      Type: AWS::EFS::FileSystem
-      Properties:
-          BackupPolicy:
-            Status: ENABLED
-          Encrypted: true
-          LifecyclePolicies:
-            - TransitionToIA: AFTER_60_DAYS
-          PerformanceMode: generalPurpose
-          ThroughputMode: bursting
-          FileSystemTags: 
-            - Key: Purpose
-              Value: 'VaultDB'
-            - Key: Project
-              Value: !Ref ApplicationName
-            - Key: createdBy
-              Value: vaultdb.ai
+    Type: AWS::EFS::FileSystem
+    Properties:
+      BackupPolicy:
+        Status: ENABLED
+      Encrypted: true
+      LifecyclePolicies:
+        - TransitionToIA: AFTER_60_DAYS
+      PerformanceMode: generalPurpose
+      ThroughputMode: bursting
+      FileSystemTags:
+        - Key: Purpose
+          Value: "VaultDB"
+        - Key: Project
+          Value: !Ref ApplicationName
+        - Key: createdBy
+          Value: vaultdb.ai
 
   EFSMountTarget:
-      Type: AWS::EFS::MountTarget
-      Properties: 
-          FileSystemId: !Ref EFSFileSystem
-          SecurityGroups: 
-            - Fn::ImportValue: !Sub "${ApplicationName}-DataSecurityGroup"
-          SubnetId: 
-            Fn::ImportValue: !Sub '${ApplicationName}-VPCPrivateSubnet'
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      SecurityGroups:
+        - Fn::ImportValue: !Sub "${ApplicationName}-DataSecurityGroup"
+      SubnetId:
+        Fn::ImportValue: !Sub "${ApplicationName}-VPCPrivateSubnet"
 
 Outputs:
   DataBucketName:
@@ -103,7 +105,7 @@ Outputs:
     Export:
       Name: !Sub ${ApplicationName}-PublicBucket
   EFSFileSystem:
-    Description: The created EFS 
+    Description: The created EFS
     Value: !Ref EFSFileSystem
     Export:
       Name: !Sub ${ApplicationName}-EFSFileSystem

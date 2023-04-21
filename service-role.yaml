@@ -24,10 +24,7 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - cloudformation:CreateStack
-                  - cloudformation:DescribeStacks
-                  - cloudformation:DeleteStack
-                  - cloudformation:DescribeStackEvents
+                  - cloudformation:*
                   - iam:PassRole
                 Resource: "*"
               - Effect: Allow
