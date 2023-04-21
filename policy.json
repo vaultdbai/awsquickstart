@@ -1,10 +1,10 @@
 {
-  "Statement" : [
+  "Statement": [
     {
-      "Effect" : "Allow",
-      "Action" : "Update:Modify",
+      "Effect": "Allow",
+      "Action": "Update:Modify",
       "Principal": "*",
-      "Resource" : "*"
+      "Resource": "*"
     }
   ]
 }

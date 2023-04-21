@@ -1,20 +1,19 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Description: VPC Nested stack
 Metadata:
   Author: VaultDB.ai
   Url: https://vaultdb.ai
-  AWS::CloudFormation::Interface: 
-    ParameterGroups: 
-      - 
-        Label: 
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
           default: "Networking Configuration"
-        Parameters: 
+        Parameters:
           - ApplicationName
           - PrimarySubnetAZ
           - PrivateSubnetCIDR
 
     ParameterLabels:
-      PrimarySubnetAZ: 
+      PrimarySubnetAZ:
         default: "What is your Primary Region?"
 
 Parameters:
@@ -30,7 +29,7 @@ Parameters:
     AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
     # Default: 10.0.20.0/24
     Description: VPC CIDR Block for the Private Subnet (eg 10.0.20.0/24)
-    Type: String    
+    Type: String
 
 Rules:
   PrimarySubnetIsRequired:
@@ -38,39 +37,39 @@ Rules:
       - AssertDescription: Primary Subnet is required
         Assert: !Not [!Equals [!Ref PrimarySubnetAZ, AWS::NoValue]]
       - AssertDescription: Primary Subnet is cannot be empty
-        Assert: !Not [!Equals [!Ref PrimarySubnetAZ, '']]
+        Assert: !Not [!Equals [!Ref PrimarySubnetAZ, ""]]
       - AssertDescription: Private Subnet CIDR is required
-        Assert: !Not [!Equals [!Ref PrivateSubnetCIDR, '']]
+        Assert: !Not [!Equals [!Ref PrivateSubnetCIDR, ""]]
 
 Resources:
   VPCPrivateSubnetA:
     Type: AWS::EC2::Subnet
     Properties:
-      VpcId: 
-        Fn::ImportValue: !Sub '${ApplicationName}-VPC'
+      VpcId:
+        Fn::ImportValue: !Sub "${ApplicationName}-VPC"
       CidrBlock: !Ref PrivateSubnetCIDR
       AvailabilityZone: !Ref PrimarySubnetAZ
       Tags:
         - Key: Purpose
-          Value: 'VaultDB'
+          Value: "VaultDB"
         - Key: Name
           Value: !Join
-            - ''
-            - - 'vaultdb-private-subnet-'
+            - ""
+            - - "vaultdb-private-subnet-"
               - !Ref ApplicationName
 
   PrivateRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
-      VpcId: 
-        Fn::ImportValue: !Sub '${ApplicationName}-VPC'
+      VpcId:
+        Fn::ImportValue: !Sub "${ApplicationName}-VPC"
       Tags:
         - Key: Purpose
-          Value: 'VaultDB'
+          Value: "VaultDB"
         - Key: Name
           Value: !Join
-            - ''
-            - - 'vaultdb-vpc-Private-Routes-'
+            - ""
+            - - "vaultdb-vpc-Private-Routes-"
               - !Ref ApplicationName
 
   PrivateSubnetARouteTableAssociation:
@@ -80,19 +79,20 @@ Resources:
       SubnetId: !Ref VPCPrivateSubnetA
 
   DataSecurityGroup:
-      Type: "AWS::EC2::SecurityGroup"
-      Properties:
-          GroupDescription: "security group for the prod EFS"
-          GroupName: !Join ['', ['vaultdb', '-data-securitygroup-', !Ref ApplicationName]]
-          VpcId:
-            Fn::ImportValue: !Sub '${ApplicationName}-VPC'
-          Tags:
-            - Key: Purpose
-              Value: 'VaultDB'    
-            - Key: Project
-              Value: !Ref ApplicationName
-            - Key: createdBy
-              Value: vaultdb.ai
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: "security group for the prod EFS"
+      GroupName:
+        !Join ["", ["vaultdb", "-data-securitygroup-", !Ref ApplicationName]]
+      VpcId:
+        Fn::ImportValue: !Sub "${ApplicationName}-VPC"
+      Tags:
+        - Key: Purpose
+          Value: "VaultDB"
+        - Key: Project
+          Value: !Ref ApplicationName
+        - Key: createdBy
+          Value: vaultdb.ai
 
   EFSInboundRule:
     Type: AWS::EC2::SecurityGroupIngress
@@ -113,33 +113,33 @@ Resources:
       GroupId: !GetAtt DataSecurityGroup.GroupId
 
   S3GatewayEndpoint:
-    Type: 'AWS::EC2::VPCEndpoint'
+    Type: "AWS::EC2::VPCEndpoint"
     Properties:
-      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
       PolicyDocument:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
-            Principal: '*'
+            Principal: "*"
             Action:
-              - 's3:*'
-            Resource: '*'
-      VpcId: 
+              - "s3:*"
+            Resource: "*"
+      VpcId:
         Fn::ImportValue: !Sub "${ApplicationName}-VPC"
       RouteTableIds:
         - !Ref PrivateRouteTable
 
   EFSInterfaceEndpoint:
-      Type: 'AWS::EC2::VPCEndpoint'
-      Properties:
-          VpcEndpointType: Interface
-          ServiceName: !Sub 'com.amazonaws.${AWS::Region}.elasticfilesystem'
-          VpcId:
-            Fn::ImportValue: !Sub '${ApplicationName}-VPC'
-          SubnetIds: 
-            - !Ref VPCPrivateSubnetA
-          SecurityGroupIds:
-            - !Ref DataSecurityGroup
+    Type: "AWS::EC2::VPCEndpoint"
+    Properties:
+      VpcEndpointType: Interface
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.elasticfilesystem"
+      VpcId:
+        Fn::ImportValue: !Sub "${ApplicationName}-VPC"
+      SubnetIds:
+        - !Ref VPCPrivateSubnetA
+      SecurityGroupIds:
+        - !Ref DataSecurityGroup
 
 Outputs:
   PrivateSubnet:

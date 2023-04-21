@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Description: VPC Nested stack
 Metadata:
   Author: VaultDB.ai
@@ -18,20 +18,20 @@ Parameters:
 
   ExistingVpcID:
     Type: String
-    Default: ''
-    ConstraintDescription: Please Choose existing VPC to use existing    
+    Default: ""
+    ConstraintDescription: Please Choose existing VPC to use existing
 
 Conditions:
-  IsNewVPC: !Equals [ !Ref ExistingVpcID, '' ]
+  IsNewVPC: !Equals [!Ref ExistingVpcID, ""]
 
 Rules:
   CreateNewVPC:
     RuleCondition: !Equals
       - !Ref ExistingVpcID
-      - ''
+      - ""
     Assertions:
       - AssertDescription: CidrBlock is required
-        Assert: !Not [!Equals [!Ref CidrBlock, '']]
+        Assert: !Not [!Equals [!Ref CidrBlock, ""]]
 
 Resources:
   VPC:
@@ -42,16 +42,15 @@ Resources:
       EnableDnsHostnames: true
       Tags:
         - Key: Purpose
-          Value: 'VaultDB'
+          Value: "VaultDB"
         - Key: Name
-          Value: !Join ['', ['vaultdb', '-vpc-', !Ref ApplicationName]]
+          Value: !Join ["", ["vaultdb", "-vpc-", !Ref ApplicationName]]
 
 Outputs:
   VPC:
-    Value: !If 
+    Value: !If
       - IsNewVPC
-      - !Ref VPC 
-      - !Ref ExistingVpcID 
+      - !Ref VPC
+      - !Ref ExistingVpcID
     Export:
-      Name: !Sub '${ApplicationName}-VPC'
-
+      Name: !Sub "${ApplicationName}-VPC"

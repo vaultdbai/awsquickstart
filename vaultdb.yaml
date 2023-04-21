@@ -14,26 +14,25 @@ Parameters:
   ExistingVpcID:
     Type: AWS::EC2::VPC::Id
     ConstraintDescription: Please choose VPC ID (For New VPC Use Template vaultdb_new_vpc.yaml).
-    
+
   PrivateSubnetCIDR:
     AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
     Description: VPC CIDR Block for the Private Subnet (eg 172.31.200.0/20)
-    Type: String    
+    Type: String
 
   BucketName:
     Type: String
-    Default: 'vaultdb-hosted-content'
+    Default: "vaultdb-hosted-content"
     Description: Vaultdb Cloudformation template store. Please do not change unless you have custom templates.
 
 Metadata:
   Author: VaultDB.ai
   Url: https://vaultdb.ai
-  AWS::CloudFormation::Interface: 
-    ParameterGroups: 
-      - 
-        Label: 
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
           default: "Required Parameters"
-        Parameters: 
+        Parameters:
           - AdminEmail
           - PrimarySubnetAZ
           - ExistingVpcID
@@ -43,37 +42,35 @@ Rules:
   RequiredParameterAssertions:
     Assertions:
       - AssertDescription: Primary Subnet is required
-        Assert: !Not [!Equals [!Ref PrimarySubnetAZ, '']]
+        Assert: !Not [!Equals [!Ref PrimarySubnetAZ, ""]]
       - AssertDescription: Primary Subnet is cannot be empty
-        Assert: !Not [!Equals [!Ref PrimarySubnetAZ, '']]
+        Assert: !Not [!Equals [!Ref PrimarySubnetAZ, ""]]
       - AssertDescription: Private Subnet CIDR is required
-        Assert: !Not [!Equals [!Ref PrivateSubnetCIDR, '']]
+        Assert: !Not [!Equals [!Ref PrivateSubnetCIDR, ""]]
 
 Resources:
   VPCStack:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL:
-        !Join
-          - ''
-          - - 'https://s3.us-east-2.amazonaws.com/'
-            - !Ref BucketName
-            - '/awsquickstart/vpc.yaml'
+      TemplateURL: !Join
+        - ""
+        - - "https://s3.us-east-2.amazonaws.com/"
+          - !Ref BucketName
+          - "/awsquickstart/vpc.yaml"
       Parameters:
         ApplicationName: !Ref AWS::StackName
         ExistingVpcID: !Ref ExistingVpcID
-        CidrBlock: "10.0.0.0/16"         
-        
+        CidrBlock: "10.0.0.0/16"
+
   NetworkingStack:
     Type: AWS::CloudFormation::Stack
     DependsOn: VPCStack
     Properties:
-      TemplateURL:
-        !Join
-          - ''
-          - - 'https://s3.us-east-2.amazonaws.com/'
-            - !Ref BucketName
-            - '/awsquickstart/networking.yaml'
+      TemplateURL: !Join
+        - ""
+        - - "https://s3.us-east-2.amazonaws.com/"
+          - !Ref BucketName
+          - "/awsquickstart/networking.yaml"
       Parameters:
         ApplicationName: !Ref AWS::StackName
         PrimarySubnetAZ: !Ref PrimarySubnetAZ
@@ -83,12 +80,11 @@ Resources:
     Type: AWS::CloudFormation::Stack
     DependsOn: NetworkingStack
     Properties:
-      TemplateURL:
-        !Join
-          - ''
-          - - 'https://s3.us-east-2.amazonaws.com/'
-            - !Ref BucketName
-            - '/awsquickstart/storage.yaml'
+      TemplateURL: !Join
+        - ""
+        - - "https://s3.us-east-2.amazonaws.com/"
+          - !Ref BucketName
+          - "/awsquickstart/storage.yaml"
       Parameters:
         ApplicationName: !Ref AWS::StackName
 
@@ -96,12 +92,11 @@ Resources:
     Type: AWS::CloudFormation::Stack
     DependsOn: DataStoreStack
     Properties:
-      TemplateURL:
-        !Join
-          - ''
-          - - 'https://s3.us-east-2.amazonaws.com/'
-            - !Ref BucketName
-            - '/awsquickstart/cognito.yaml'
+      TemplateURL: !Join
+        - ""
+        - - "https://s3.us-east-2.amazonaws.com/"
+          - !Ref BucketName
+          - "/awsquickstart/cognito.yaml"
       Parameters:
         ApplicationName: !Ref AWS::StackName
         AdminEmail: !Ref AdminEmail
@@ -110,27 +105,24 @@ Resources:
     Type: AWS::CloudFormation::Stack
     DependsOn: CognitoUsersStack
     Properties:
-      TemplateURL:
-        !Join
-          - ''
-          - - 'https://s3.us-east-2.amazonaws.com/'
-            - !Ref BucketName
-            - '/awsquickstart/deploy_artifacts.yaml'
+      TemplateURL: !Join
+        - ""
+        - - "https://s3.us-east-2.amazonaws.com/"
+          - !Ref BucketName
+          - "/awsquickstart/deploy_artifacts.yaml"
       Parameters:
         ApplicationName: !Ref AWS::StackName
         SourceBucketName: !Ref BucketName
-        AdminEmail: !Ref AdminEmail                
+        AdminEmail: !Ref AdminEmail
 
   LambdaDeploymentStack:
     Type: AWS::CloudFormation::Stack
     DependsOn: DeployArtifactStack
     Properties:
-      TemplateURL:
-        !Join
-          - ''
-          - - 'https://s3.us-east-2.amazonaws.com/'
-            - !Ref BucketName
-            - '/awsquickstart/lambda.yaml'
+      TemplateURL: !Join
+        - ""
+        - - "https://s3.us-east-2.amazonaws.com/"
+          - !Ref BucketName
+          - "/awsquickstart/lambda.yaml"
       Parameters:
         ApplicationName: !Ref AWS::StackName
-

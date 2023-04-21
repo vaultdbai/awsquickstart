@@ -3,23 +3,24 @@ Description: VaultDB Lambda funtion to execute Queries
 Metadata:
   Author: VaultDB.ai
   Url: https://vaultdb.ai
-      
+
 Parameters:
   ApplicationName:
     Type: String
     AllowedPattern: "^[a-z][a-z0-9-]{0,48}[a-z0-9]$"
     Description: Enter the name of your application with no spaces.
-    
+
 Resources:
   ExecuteRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Join ['', ['vaultdb', '-execution-role-', !Ref ApplicationName]]
+      RoleName:
+        !Join ["", ["vaultdb", "-execution-role-", !Ref ApplicationName]]
       Tags:
         - Key: Purpose
-          Value: 'VaultDB'
+          Value: "VaultDB"
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal:
@@ -34,30 +35,34 @@ Resources:
             Action:
               - sts:AssumeRole
       Policies:
-        - PolicyName: !Join ['', ['vaultdb', '-execution-service-policy-', !Ref ApplicationName]]
+        - PolicyName:
+            !Join [
+              "",
+              ["vaultdb", "-execution-service-policy-", !Ref ApplicationName],
+            ]
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
                   - logs:CreateLogGroup
-                Resource: '*'
+                Resource: "*"
               - Effect: Allow
                 Action:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
-                Resource: '*'
+                Resource: "*"
               - Effect: Allow
                 Action:
                   - s3:ListMultipartUploadParts
                   - s3:*Object
                   - s3:ListBucket
-                Resource: '*'
+                Resource: "*"
               - Effect: Allow
                 Action:
                   - elasticfilesystem:ClientMount
                   - elasticfilesystem:ClientWrite
-                Resource: '*'
+                Resource: "*"
               - Effect: Allow
                 Action:
                   - ec2:DescribeNetworkInterfaces
@@ -65,13 +70,13 @@ Resources:
                   - ec2:DeleteNetworkInterface
                   - ec2:DescribeInstances
                   - ec2:AttachNetworkInterface
-                Resource: '*'
+                Resource: "*"
 
   AccessPointResource:
     Type: AWS::EFS::AccessPoint
     Properties:
-      FileSystemId: 
-        Fn::ImportValue: !Sub '${ApplicationName}-EFSFileSystem'
+      FileSystemId:
+        Fn::ImportValue: !Sub "${ApplicationName}-EFSFileSystem"
       PosixUser:
         Uid: 1001
         Gid: 1001
@@ -85,7 +90,8 @@ Resources:
   VaultDBPythonLayer:
     Type: "AWS::Lambda::LayerVersion"
     Properties:
-      LayerName: !Join ['', ['vaultdb', '-python-linux-layer-', !Ref ApplicationName]]
+      LayerName:
+        !Join ["", ["vaultdb", "-python-linux-layer-", !Ref ApplicationName]]
       CompatibleRuntimes:
         - python3.8
       CompatibleArchitectures:
@@ -93,16 +99,17 @@ Resources:
       Content:
         S3Bucket:
           Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
-        S3Key: 'release/lambda-package.zip'
+        S3Key: "release/lambda-package.zip"
 
   ExecuteQueryFunction:
     Type: AWS::Lambda::Function
     Properties:
       Tags:
         - Key: Purpose
-          Value: 'VaultDB'    
+          Value: "VaultDB"
       Description: Execute Vaultdb SQL Qeries
-      FunctionName: !Join ['', ['vaultdb', '-execute-query-', !Ref ApplicationName]]
+      FunctionName:
+        !Join ["", ["vaultdb", "-execute-query-", !Ref ApplicationName]]
       Handler: index.lambda_handler
       MemorySize: 128
       Role: !GetAtt ExecuteRole.Arn
@@ -115,18 +122,18 @@ Resources:
       Environment:
         Variables:
           application_name: !Sub "${ApplicationName}"
-          aws_region: !Sub '${AWS::Region}'
-          AWS_STS_REGIONAL_ENDPOINTS: 'regional'
-          commitlog_directory: '/mnt/commitlog'
-          data_store: 
+          aws_region: !Sub "${AWS::Region}"
+          AWS_STS_REGIONAL_ENDPOINTS: "regional"
+          commitlog_directory: "/mnt/commitlog"
+          data_store:
             Fn::ImportValue: !Sub "${ApplicationName}-DataBucket"
           user_pool_client_id:
             Fn::ImportValue: !Sub "${ApplicationName}-UserPoolClient"
       VpcConfig:
         SecurityGroupIds:
-          - Fn::ImportValue: !Sub '${ApplicationName}-DataSecurityGroup'
+          - Fn::ImportValue: !Sub "${ApplicationName}-DataSecurityGroup"
         SubnetIds:
-          - Fn::ImportValue: !Sub '${ApplicationName}-VPCPrivateSubnet'
+          - Fn::ImportValue: !Sub "${ApplicationName}-VPCPrivateSubnet"
       FileSystemConfigs:
         - Arn: !GetAtt AccessPointResource.Arn
           LocalMountPath: /mnt/commitlog
@@ -250,5 +257,4 @@ Outputs:
   CLI:
     Description: Use this command to invoke the Lambda function
     Value: !Sub |
-        aws lambda invoke --function-name 'vaultdb-execute-query-${ApplicationName}' --payload 'SELECT CURRENT_CATALOG' lambda-output.txt --cli-binary-format raw-in-base64-out
-        
+      aws lambda invoke --function-name 'vaultdb-execute-query-${ApplicationName}' --payload 'SELECT CURRENT_CATALOG' lambda-output.txt --cli-binary-format raw-in-base64-out

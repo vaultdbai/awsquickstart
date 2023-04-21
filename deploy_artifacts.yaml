@@ -3,7 +3,7 @@ Description: VaultDB Lambda funtion to execute Queries
 Metadata:
   Author: VaultDB.ai
   Url: https://vaultdb.ai
-      
+
 Parameters:
   ApplicationName:
     Type: String
@@ -24,12 +24,12 @@ Resources:
   ExecuteUtilRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Join ['', ['vaultdb', '-execute-util-', !Ref ApplicationName]]
+      RoleName: !Join ["", ["vaultdb", "-execute-util-", !Ref ApplicationName]]
       Tags:
         - Key: Purpose
-          Value: 'VaultDB'
+          Value: "VaultDB"
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal:
@@ -38,34 +38,39 @@ Resources:
             Action:
               - sts:AssumeRole
       Policies:
-        - PolicyName: !Join ['', ['vaultdb', '-execute-util-policy-', !Ref ApplicationName]]
+        - PolicyName:
+            !Join [
+              "",
+              ["vaultdb", "-execute-util-policy-", !Ref ApplicationName],
+            ]
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
                   - logs:CreateLogGroup
-                Resource: '*'
+                Resource: "*"
               - Effect: Allow
                 Action:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
-                Resource: '*'
+                Resource: "*"
               - Effect: Allow
                 Action:
                   - s3:ListMultipartUploadParts
                   - s3:*Object
                   - s3:ListBucket
-                Resource: '*'
+                Resource: "*"
 
   DeploymentUtilFunction:
     Type: AWS::Lambda::Function
     Properties:
       Tags:
         - Key: Purpose
-          Value: 'VaultDB'    
+          Value: "VaultDB"
       Description: Execute Vaultdb SQL Qeries
-      FunctionName: !Join ['', ['vaultdb', '-deployment-util-', !Ref ApplicationName]]
+      FunctionName:
+        !Join ["", ["vaultdb", "-deployment-util-", !Ref ApplicationName]]
       Handler: index.lambda_handler
       MemorySize: 128
       Runtime: python3.8
@@ -75,8 +80,8 @@ Resources:
         Variables:
           application_name: !Sub "${ApplicationName}"
           admin_email: !Sub "${AdminEmail}"
-          AWS_STS_REGIONAL_ENDPOINTS: 'regional'
-          aws_region: !Sub '${AWS::Region}'
+          AWS_STS_REGIONAL_ENDPOINTS: "regional"
+          aws_region: !Sub "${AWS::Region}"
           user_pool_id:
             Fn::ImportValue: !Sub "${ApplicationName}-UserPool"
           user_pool_client_id:
@@ -196,20 +201,20 @@ Resources:
                   logger.error("Missing required parameters while calling the API.")
                   print('Error Message: {}'.format(error))
 
-  ScheduledRule: 
+  ScheduledRule:
     Type: AWS::Events::Rule
-    Properties: 
+    Properties:
       Description: "Scheduled Key Refresh"
       ScheduleExpression: "cron(15 10 ? * 6L *)"
       State: "ENABLED"
       Targets:
         - Arn: !GetAtt DeploymentUtilFunction.Arn
-          Id: 'UpdateKeysWeekly'
+          Id: "UpdateKeysWeekly"
           Input: '{"RequestType":  "Refresh"}'
 
-  PermissionForEventsToInvokeLambda: 
+  PermissionForEventsToInvokeLambda:
     Type: AWS::Lambda::Permission
-    Properties: 
+    Properties:
       FunctionName: !Ref DeploymentUtilFunction
       Action: "lambda:InvokeFunction"
       Principal: "events.amazonaws.com"
@@ -225,5 +230,4 @@ Outputs:
   CLI:
     Description: Use this command to copy files
     Value: !Sub |
-        aws lambda invoke --function-name 'vaultdb--deployment-util-${ApplicationName}' --payload '{ "Bucket": "test_bucket", "path": "tes" }' lambda-output.txt --cli-binary-format raw-in-base64-out
-        
+      aws lambda invoke --function-name 'vaultdb--deployment-util-${ApplicationName}' --payload '{ "Bucket": "test_bucket", "path": "tes" }' lambda-output.txt --cli-binary-format raw-in-base64-out

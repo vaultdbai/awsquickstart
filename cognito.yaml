@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Description: VaultDB Users Stack
 Parameters:
   ApplicationName:
@@ -21,7 +21,7 @@ Resources:
   UserPool:
     Type: "AWS::Cognito::UserPool"
     Properties:
-      UserPoolName: !Join ['', ['Vaultdb', '-user-pool-', !Ref ApplicationName]]
+      UserPoolName: !Join ["", ["Vaultdb", "-user-pool-", !Ref ApplicationName]]
       Schema:
         - Name: name
           AttributeDataType: String
@@ -35,8 +35,8 @@ Resources:
         AllowAdminCreateUserOnly: true
         UnusedAccountValidityDays: 90
         InviteMessageTemplate:
-          EmailMessage: 'Your VaultDB username is {username} and the temporary password is {####}'
-          EmailSubject: 'Your temporary password for VaultDB'
+          EmailMessage: "Your VaultDB username is {username} and the temporary password is {####}"
+          EmailSubject: "Your temporary password for VaultDB"
       Policies:
         PasswordPolicy:
           MinimumLength: 6
@@ -49,7 +49,7 @@ Resources:
     Type: "AWS::Cognito::UserPoolClient"
     DependsOn: UserPool
     Properties:
-      ClientName: !Join ['', ['Vaultdb', '-client', !Ref ApplicationName]]
+      ClientName: !Join ["", ["Vaultdb", "-client", !Ref ApplicationName]]
       GenerateSecret: false
       UserPoolId: !Ref UserPool
 
@@ -58,9 +58,10 @@ Resources:
     Type: "AWS::Cognito::IdentityPool"
     DependsOn: UserPoolClient
     Properties:
-      IdentityPoolName: !Join ['', ['Vaultdb', '-Identity-', !Ref ApplicationName]]
+      IdentityPoolName:
+        !Join ["", ["Vaultdb", "-Identity-", !Ref ApplicationName]]
       AllowUnauthenticatedIdentities: true
-      CognitoIdentityProviders: 
+      CognitoIdentityProviders:
         - ClientId: !Ref UserPoolClient
           ProviderName: !GetAtt UserPool.ProviderName
 
@@ -68,28 +69,36 @@ Resources:
   CognitoUnAuthorizedRole:
     Type: "AWS::IAM::Role"
     Properties:
-      RoleName: !Join ['', ['vaultdb', '-CognitoUnAuthorizedRole-', !Ref ApplicationName]]
+      RoleName:
+        !Join [
+          "",
+          ["vaultdb", "-CognitoUnAuthorizedRole-", !Ref ApplicationName],
+        ]
       Tags:
         - Key: Purpose
-          Value: 'VaultDB'    
-      AssumeRolePolicyDocument: 
+          Value: "VaultDB"
+      AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: "Allow"
-            Principal: 
+            Principal:
               Federated: "cognito-identity.amazonaws.com"
-            Action: 
+            Action:
               - "sts:AssumeRoleWithWebIdentity"
             Condition:
-              StringEquals: 
+              StringEquals:
                 "cognito-identity.amazonaws.com:aud": !Ref IdentityPool
               "ForAnyValue:StringLike":
                 "cognito-identity.amazonaws.com:amr": unauthenticated
       Policies:
-        - PolicyName: !Join ['', ['vaultdb', '-CognitoUnauthorizedPolicy-', !Ref ApplicationName]]
-          PolicyDocument: 
+        - PolicyName:
+            !Join [
+              "",
+              ["vaultdb", "-CognitoUnauthorizedPolicy-", !Ref ApplicationName],
+            ]
+          PolicyDocument:
             Version: "2012-10-17"
-            Statement: 
+            Statement:
               - Effect: "Allow"
                 Action:
                   - "mobileanalytics:PutEvents"
@@ -101,28 +110,37 @@ Resources:
   CognitoAuthorizedRole:
     Type: "AWS::IAM::Role"
     Properties:
-      RoleName: !Join ['', ['vaultdb', '-CognitoAuthorizedRole-', !Ref ApplicationName]]
+      RoleName:
+        !Join ["", ["vaultdb", "-CognitoAuthorizedRole-", !Ref ApplicationName]]
       Tags:
         - Key: Purpose
-          Value: 'VaultDB'    
-      AssumeRolePolicyDocument: 
+          Value: "VaultDB"
+      AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: "Allow"
-            Principal: 
+            Principal:
               Federated: "cognito-identity.amazonaws.com"
-            Action: 
+            Action:
               - "sts:AssumeRoleWithWebIdentity"
             Condition:
-              StringEquals: 
+              StringEquals:
                 "cognito-identity.amazonaws.com:aud": !Ref IdentityPool
               "ForAnyValue:StringLike":
                 "cognito-identity.amazonaws.com:amr": authenticated
       Policies:
-        - PolicyName: !Join ['', ['vaultdb', '-CognitoAdminAuthorizedPolicy-', !Ref ApplicationName]]
-          PolicyDocument: 
+        - PolicyName:
+            !Join [
+              "",
+              [
+                "vaultdb",
+                "-CognitoAdminAuthorizedPolicy-",
+                !Ref ApplicationName,
+              ],
+            ]
+          PolicyDocument:
             Version: "2012-10-17"
-            Statement: 
+            Statement:
               - Effect: "Allow"
                 Action:
                   - "mobileanalytics:PutEvents"
@@ -146,28 +164,32 @@ Resources:
   VaultDBAdminRole:
     Type: "AWS::IAM::Role"
     Properties:
-      RoleName: !Join ['', ['vaultdb', '-AdminRole-', !Ref ApplicationName]]
+      RoleName: !Join ["", ["vaultdb", "-AdminRole-", !Ref ApplicationName]]
       Tags:
         - Key: Purpose
-          Value: 'VaultDB'    
-      AssumeRolePolicyDocument: 
+          Value: "VaultDB"
+      AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: "Allow"
-            Principal: 
+            Principal:
               Federated: "cognito-identity.amazonaws.com"
-            Action: 
+            Action:
               - "sts:AssumeRoleWithWebIdentity"
             Condition:
-              StringEquals: 
+              StringEquals:
                 "cognito-identity.amazonaws.com:aud": !Ref IdentityPool
               "ForAnyValue:StringLike":
                 "cognito-identity.amazonaws.com:amr": authenticated
       Policies:
-        - PolicyName: !Join ['', ['vaultdb', '-AdminUserRolePolicies-', !Ref ApplicationName]]
-          PolicyDocument: 
+        - PolicyName:
+            !Join [
+              "",
+              ["vaultdb", "-AdminUserRolePolicies-", !Ref ApplicationName],
+            ]
+          PolicyDocument:
             Version: "2012-10-17"
-            Statement:       
+            Statement:
               - Effect: "Allow"
                 Action:
                   - "mobileanalytics:PutEvents"
@@ -182,28 +204,29 @@ Resources:
   VaultDBUserRole:
     Type: "AWS::IAM::Role"
     Properties:
-      RoleName: !Join ['', ['vaultdb', '-UserRole-', !Ref ApplicationName]]
+      RoleName: !Join ["", ["vaultdb", "-UserRole-", !Ref ApplicationName]]
       Tags:
         - Key: Purpose
-          Value: 'VaultDB'    
-      AssumeRolePolicyDocument: 
+          Value: "VaultDB"
+      AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
           - Effect: "Allow"
-            Principal: 
+            Principal:
               Federated: "cognito-identity.amazonaws.com"
-            Action: 
+            Action:
               - "sts:AssumeRoleWithWebIdentity"
             Condition:
-              StringEquals: 
+              StringEquals:
                 "cognito-identity.amazonaws.com:aud": !Ref IdentityPool
               "ForAnyValue:StringLike":
                 "cognito-identity.amazonaws.com:amr": authenticated
       Policies:
-        - PolicyName: !Join ['', ['vaultdb', '-UserRolePolicies-', !Ref ApplicationName]]
-          PolicyDocument: 
+        - PolicyName:
+            !Join ["", ["vaultdb", "-UserRolePolicies-", !Ref ApplicationName]]
+          PolicyDocument:
             Version: "2012-10-17"
-            Statement:       
+            Statement:
               - Effect: "Allow"
                 Action:
                   - "mobileanalytics:PutEvents"
@@ -218,9 +241,10 @@ Resources:
   QueryUserPoolGroup:
     Type: AWS::Cognito::UserPoolGroup
     DependsOn: UserPool
-    Properties: 
+    Properties:
       Description: "VaultDB ReadOnly Users"
-      GroupName: !Join ['', ['vaultdb', '-ReadOnlyUsers-', !Ref ApplicationName]]
+      GroupName:
+        !Join ["", ["vaultdb", "-ReadOnlyUsers-", !Ref ApplicationName]]
       Precedence: 1
       RoleArn: !GetAtt VaultDBUserRole.Arn
       UserPoolId: !Ref UserPool
@@ -228,9 +252,10 @@ Resources:
   AdminUserPoolGroup:
     Type: AWS::Cognito::UserPoolGroup
     DependsOn: UserPool
-    Properties: 
+    Properties:
       Description: "VaultDB Administrators"
-      GroupName: !Join ['', ['vaultdb', '-Administrators-', !Ref ApplicationName]]
+      GroupName:
+        !Join ["", ["vaultdb", "-Administrators-", !Ref ApplicationName]]
       Precedence: 10
       RoleArn: !GetAtt VaultDBAdminRole.Arn
       UserPoolId: !Ref UserPool
@@ -238,39 +263,39 @@ Resources:
   AdminUser:
     Type: AWS::Cognito::UserPoolUser
     Properties:
-      Username: 'vaultdb'
+      Username: "vaultdb"
       UserPoolId: !Ref UserPool
       DesiredDeliveryMediums:
         - EMAIL
       UserAttributes:
         - Name: name
-          Value: 'vaultdb'
+          Value: "vaultdb"
         - Name: email
           Value: !Ref AdminEmail
 
   QueryUser:
     Type: AWS::Cognito::UserPoolUser
     Properties:
-      Username: 'demo'
+      Username: "demo"
       UserPoolId: !Ref UserPool
       DesiredDeliveryMediums:
         - EMAIL
       UserAttributes:
         - Name: name
-          Value: 'demo'
+          Value: "demo"
         - Name: email
           Value: !Ref AdminEmail
 
   AdminUserAssignment:
     Type: AWS::Cognito::UserPoolUserToGroupAttachment
-    Properties: 
+    Properties:
       GroupName: !Ref AdminUserPoolGroup
       Username: !Ref AdminUser
       UserPoolId: !Ref UserPool
 
   ReadOnlyUserAssignment:
     Type: AWS::Cognito::UserPoolUserToGroupAttachment
-    Properties: 
+    Properties:
       GroupName: !Ref QueryUserPoolGroup
       Username: !Ref QueryUser
       UserPoolId: !Ref UserPool
