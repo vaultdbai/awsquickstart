@@ -1,4 +1,4 @@
-AWSTemplateFormatVersion: '2010-09-09'
+AWSTemplateFormatVersion: "2010-09-09"
 Description: IAM service role for cloud formation
 Metadata:
   Author: VaultDB.ai
@@ -9,7 +9,7 @@ Resources:
     Properties:
       RoleName: vaultdb_cloudformation_service_role
       AssumeRolePolicyDocument:
-        Version: '2012-10-17'
+        Version: "2012-10-17"
         Statement:
           - Effect: Allow
             Principal:
@@ -20,7 +20,7 @@ Resources:
       Policies:
         - PolicyName: vaultdb_cloudformation_vaultdb_resources
           PolicyDocument:
-            Version: '2012-10-17'
+            Version: "2012-10-17"
             Statement:
               - Effect: Allow
                 Action:
@@ -85,20 +85,20 @@ Resources:
                 Resource: "*"
               - Effect: Allow
                 Action:
-                  - ec2:CreateVpc 
+                  - ec2:CreateVpc
                   - ec2:DeleteVpc
-                  - ec2:ModifyVpcAttribute 
+                  - ec2:ModifyVpcAttribute
                   - ec2:CreateVpcEndpoint
                   - ec2:DeleteVpcEndpoints
-                  - ec2:CreateSubnet 
+                  - ec2:CreateSubnet
                   - ec2:CreateRouteTable
-                  - ec2:CreateRoute 
-                  - ec2:CreateInternetGateway 
-                  - ec2:AttachInternetGateway 
+                  - ec2:CreateRoute
+                  - ec2:CreateInternetGateway
+                  - ec2:AttachInternetGateway
                   - ec2:CreateSecurityGroup
                   - ec2:DeleteSecurityGroup
-                  - ec2:AssociateRouteTable 
-                  - ec2:DisassociateRouteTable                                 
+                  - ec2:AssociateRouteTable
+                  - ec2:DisassociateRouteTable
                   - ec2:AuthorizeSecurityGroupIngress
                   - ec2:RevokeSecurityGroupIngress
                   - ec2:CreateTags
@@ -137,7 +137,7 @@ Resources:
                   - cognito-identity:CreateIdentityPool
                   - cognito-identity:DeleteIdentityPool
                   - cognito-identity:DescribeIdentityPool
-                  - cognito-identity:SetIdentityPoolRoles                  
+                  - cognito-identity:SetIdentityPoolRoles
                 Resource: "*"
               - Effect: Allow
                 Action:
@@ -200,17 +200,11 @@ Resources:
                   - events:ListRuleNamesByTarget
                   - events:ListRules
                   - events:RemoveTargets
-                Resource: "arn:aws:events:*:*:*"
-              - Effect: Allow
-                Action:
                   - events:DeleteRule
                   - events:EnableRule
                   - events:RemovePermission
                   - events:DisableRule
-                Resource: "*"
-                Condition:
-                  StringEquals:
-                    "s3:ResourceTag/Purpose": "VaultDB"
+                Resource: "arn:aws:events:*:*:*"
               - Effect: Allow
                 Action:
                   - iam:GetRole
@@ -222,7 +216,7 @@ Resources:
                   - iam:ListPolicyVersions
                   - iam:TagRole
                   - iam:ListPolicyTags
-                  - iam:GetRolePolicy                  
+                  - iam:GetRolePolicy
                   - iam:TagPolicy
                   - iam:GetPolicy
                   - iam:ListUserTags
@@ -253,7 +247,7 @@ Resources:
                 Resource: "arn:aws:ec2:*:*:subnet/*"
                 Condition:
                   StringEquals:
-                    "ec2:ResourceTag/Purpose": "VaultDB"                
+                    "ec2:ResourceTag/Purpose": "VaultDB"
               - Effect: Allow
                 Action:
                   - ec2:DeleteRouteTable
@@ -262,7 +256,7 @@ Resources:
                 Resource: "arn:aws:ec2:*:*:route-table/*"
                 Condition:
                   StringEquals:
-                    "ec2:ResourceTag/Purpose": "VaultDB"                
+                    "ec2:ResourceTag/Purpose": "VaultDB"
 Outputs:
   ServiceRoleARN:
     Value: !GetAtt ServiceRole.Arn
