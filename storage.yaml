@@ -61,10 +61,30 @@ Resources:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
-      AccessControl: "PublicRead"
       WebsiteConfiguration:
         IndexDocument: "index.html"
         ErrorDocument: "error.html"
+      PublicAccessBlockConfiguration:
+        BlockPublicPolicy: false
+
+  PublicBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref PublicBucket
+      PolicyDocument:
+        Id: PublicReadPolicy
+        Version: 2012-10-17
+        Statement:
+          - Sid: PublicReadForGetBucketObjects
+            Effect: Allow
+            Principal: "*"
+            Action: "s3:GetObject"
+            Resource: !Sub arn:aws:s3:::${PublicBucket}/*
+          - Sid: AddPermlist
+            Effect: Allow
+            Principal: "*"
+            Action: "s3:ListBucket"
+            Resource: !Sub arn:aws:s3:::${PublicBucket}
 
   EFSFileSystem:
     Type: AWS::EFS::FileSystem
