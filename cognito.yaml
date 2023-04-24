@@ -33,9 +33,35 @@ Resources:
           Required: false
       AdminCreateUserConfig:
         AllowAdminCreateUserOnly: true
-        UnusedAccountValidityDays: 90
         InviteMessageTemplate:
-          EmailMessage: "Your VaultDB username is {username} and the temporary password is {####}"
+          EmailMessage:
+            !Join [
+              "",
+              [
+                "<html>",
+                "<head></head>",
+                "<body>",
+                "<div align='center'>",
+                "<h1>",
+                "<a href=",
+                Fn::ImportValue: !Sub "${ApplicationName}-WebsiteURL",
+                ">",
+                "Welcome to VaultDB!!",
+                "</a>",
+                "</h1>",
+                "<h2>",
+                "Your VaultDB username is {username} and the temporary password is {####}",
+                "</h2>",
+                "<h4>",
+                "Click Above or Copy the following link to start using your VaultDB",
+                "Installation.<br />",
+                Fn::ImportValue: !Sub "${ApplicationName}-WebsiteURL",
+                "</h4>",
+                "</div>",
+                "</body>",
+                "</html>",
+              ],
+            ]
           EmailSubject: "Your temporary password for VaultDB"
       Policies:
         PasswordPolicy:
@@ -44,6 +70,7 @@ Resources:
           RequireNumbers: false
           RequireSymbols: false
           RequireUppercase: false
+          TemporaryPasswordValidityDays: 90
   # Creates a User Pool Client to be used by the identity pool
   UserPoolClient:
     Type: "AWS::Cognito::UserPoolClient"

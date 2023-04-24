@@ -122,6 +122,7 @@ Resources:
               - Effect: Allow
                 Action:
                   - cognito-idp:DescribeUserPool
+                  - cognito-idp:ListTagsForResource
                   - cognito-idp:DescribeUserPoolClient
                   - cognito-idp:CreateUserPool
                   - cognito-idp:CreateUserPoolClient
@@ -144,6 +145,7 @@ Resources:
                   - cognito-idp:AdminDeleteUserAttributes
                   - cognito-idp:AdminRemoveUserFromGroup
                   - cognito-idp:DeleteUserPoolClient
+                  - cognito-idp:UpdateUserPool
                 Resource: "*"
               - Effect: Allow
                 Action:
