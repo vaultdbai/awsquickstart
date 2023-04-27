@@ -45,7 +45,7 @@ Resources:
                 "<h1>",
                 "<a href=",
                 Fn::ImportValue: !Sub "${ApplicationName}-WebsiteURL",
-                ">",
+                "/index.html>",
                 "Welcome to VaultDB!!",
                 "</a>",
                 "</h1>",
@@ -56,7 +56,7 @@ Resources:
                 "Click Above or Copy the following link to start using your VaultDB",
                 "Installation.<br />",
                 Fn::ImportValue: !Sub "${ApplicationName}-WebsiteURL",
-                "</h4>",
+                "/index.html</h4>",
                 "</div>",
                 "</body>",
                 "</html>",
@@ -175,7 +175,7 @@ Resources:
   VaultDBAdminRole:
     Type: "AWS::IAM::Role"
     Properties:
-      RoleName: !Join ["", [!Ref ApplicationName, "-AdminRole"]]
+      RoleName: !Join ["", [!Ref ApplicationName, "-vaultdb", "-AdminRole"]]
       Tags:
         - Key: Purpose
           Value: "VaultDB"
@@ -212,7 +212,7 @@ Resources:
   VaultDBUserRole:
     Type: "AWS::IAM::Role"
     Properties:
-      RoleName: !Join ["", [!Ref ApplicationName, "-UserRole"]]
+      RoleName: !Join ["", [!Ref ApplicationName, "-ReadOnlyUsers"]]
       Tags:
         - Key: Purpose
           Value: "VaultDB"

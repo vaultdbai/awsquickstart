@@ -170,8 +170,8 @@ Resources:
                   verified_claims = verify_token(token, data_store, app_client_id)
                   preferred_role = str(verified_claims['cognito:preferred_role']).split(':role/')[-1]        
                   logger.info(f'preferred_role: {preferred_role}')
-                  if application_name and preferred_role.endswith(application_name):
-                      preferred_role = preferred_role[:-1*(len(application_name)+1)]
+                  if application_name and preferred_role.startswith(application_name):
+                      preferred_role = preferred_role[len(application_name)+1:]
                   if preferred_role.endswith('-AdminRole'):
                       preferred_role = preferred_role[:-10]
                   logger.info(f'role: {preferred_role}')
