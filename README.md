@@ -2,9 +2,21 @@
 
 This repository contains the VaultDB ai platform aws quickstart templates.
 
+## TODO:
+
+### 1) Create Diagram
+
+    https://diagrams.mingrammer.com/docs/getting-started/examples
+
+### 2) Run Deploy Lambda with Service Role as Executor Role
+
+### 3) Provide Update Button on Website to update and deploy lambda to kick off update to Stack
+
+### 4) Low Priority:-- Provide Ability to Delete and Recreate EFS Interface EndPoint to save Cost when system is not required
+
 ## Create Service Role
 
-#### [![Launch stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=region#/stacks/new?stackName=vaultdb-service-role&templateURL=https://vaultdb-hosted-content.s3.us-east-2.amazonaws.com/awsquickstart/service-role.yaml)
+#### [![Launch stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=vaultdb-service-role&templateURL=https://vaultdb-hosted-content.s3.us-east-2.amazonaws.com/awsquickstart/service-role.yaml)
 
 ### AWS CLI Command to Create Cloud Formation Service Role
 
@@ -26,7 +38,7 @@ This repository contains the VaultDB ai platform aws quickstart templates.
 
 ### Note: Make sure to pick the vaultdb_cloudformation_service_role
 
-### [![Launch stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=region#/stacks/new?stackName=vaultdb-development-instance&templateURL=https://vaultdb-hosted-content.s3.us-east-2.amazonaws.com/awsquickstart/vaultdb.yaml)
+### [![Launch stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=vaultdb-development-instance&templateURL=https://vaultdb-hosted-content.s3.us-east-2.amazonaws.com/awsquickstart/vaultdb.yaml)
 
 ### AWS CLI Command to Create VaultDB Instance
 

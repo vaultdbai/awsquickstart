@@ -207,6 +207,11 @@ Resources:
       ServiceToken: !GetAtt DeploymentUtilFunction.Arn
 
 Outputs:
+  DeploymentUtilFunction:
+    Description: VaultDB Deployment Util Function
+    Value: !Ref DeploymentUtilFunction
+    Export:
+      Name: !Sub ${ApplicationName}-DeploymentUtilFunction
   CLI:
     Description: Use this command to copy files
     Value: !Sub |

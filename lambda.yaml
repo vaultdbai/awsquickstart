@@ -248,6 +248,11 @@ Outputs:
     Value: !Ref ExecuteRole
     Export:
       Name: !Sub ${ApplicationName}-ExecuteRole
+  ExecuteQueryFunction:
+    Description: VaultDB Execute Query Function
+    Value: !Ref ExecuteQueryFunction
+    Export:
+      Name: !Sub ${ApplicationName}-ExecuteQueryFunction
   CLI:
     Description: Use this command to invoke the Lambda function
     Value: !Sub |
