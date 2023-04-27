@@ -44,7 +44,7 @@ Resources:
         - Key: Purpose
           Value: "VaultDB"
         - Key: Name
-          Value: !Join ["", ["vaultdb", "-vpc-", !Ref ApplicationName]]
+          Value: !Join ["", [!Ref ApplicationName, "-vpc"]]
 
 Outputs:
   VPC:

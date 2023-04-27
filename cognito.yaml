@@ -21,7 +21,7 @@ Resources:
   UserPool:
     Type: "AWS::Cognito::UserPool"
     Properties:
-      UserPoolName: !Join ["", ["Vaultdb", "-user-pool-", !Ref ApplicationName]]
+      UserPoolName: !Join ["", [!Ref ApplicationName, "-user-pool"]]
       Schema:
         - Name: name
           AttributeDataType: String
@@ -76,7 +76,7 @@ Resources:
     Type: "AWS::Cognito::UserPoolClient"
     DependsOn: UserPool
     Properties:
-      ClientName: !Join ["", ["Vaultdb", "-client", !Ref ApplicationName]]
+      ClientName: !Join ["", [!Ref ApplicationName, "-client"]]
       GenerateSecret: false
       UserPoolId: !Ref UserPool
 
@@ -85,8 +85,7 @@ Resources:
     Type: "AWS::Cognito::IdentityPool"
     DependsOn: UserPoolClient
     Properties:
-      IdentityPoolName:
-        !Join ["", ["Vaultdb", "-Identity-", !Ref ApplicationName]]
+      IdentityPoolName: !Join ["", [!Ref ApplicationName, "-Identity"]]
       AllowUnauthenticatedIdentities: true
       CognitoIdentityProviders:
         - ClientId: !Ref UserPoolClient
@@ -96,11 +95,7 @@ Resources:
   CognitoUnAuthorizedRole:
     Type: "AWS::IAM::Role"
     Properties:
-      RoleName:
-        !Join [
-          "",
-          ["vaultdb", "-CognitoUnAuthorizedRole-", !Ref ApplicationName],
-        ]
+      RoleName: !Join ["", [!Ref ApplicationName, "-CognitoUnAuthorizedRole"]]
       Tags:
         - Key: Purpose
           Value: "VaultDB"
@@ -119,10 +114,7 @@ Resources:
                 "cognito-identity.amazonaws.com:amr": unauthenticated
       Policies:
         - PolicyName:
-            !Join [
-              "",
-              ["vaultdb", "-CognitoUnauthorizedPolicy-", !Ref ApplicationName],
-            ]
+            !Join ["", [!Ref ApplicationName, "-CognitoUnauthorizedPolicy"]]
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
@@ -137,8 +129,7 @@ Resources:
   CognitoAuthorizedRole:
     Type: "AWS::IAM::Role"
     Properties:
-      RoleName:
-        !Join ["", ["vaultdb", "-CognitoAuthorizedRole-", !Ref ApplicationName]]
+      RoleName: !Join ["", [!Ref ApplicationName, "-CognitoAuthorizedRole"]]
       Tags:
         - Key: Purpose
           Value: "VaultDB"
@@ -157,14 +148,7 @@ Resources:
                 "cognito-identity.amazonaws.com:amr": authenticated
       Policies:
         - PolicyName:
-            !Join [
-              "",
-              [
-                "vaultdb",
-                "-CognitoAdminAuthorizedPolicy-",
-                !Ref ApplicationName,
-              ],
-            ]
+            !Join ["", [!Ref ApplicationName, "-CognitoAdminAuthorizedPolicy"]]
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
@@ -191,7 +175,7 @@ Resources:
   VaultDBAdminRole:
     Type: "AWS::IAM::Role"
     Properties:
-      RoleName: !Join ["", ["vaultdb", "-AdminRole-", !Ref ApplicationName]]
+      RoleName: !Join ["", [!Ref ApplicationName, "-AdminRole"]]
       Tags:
         - Key: Purpose
           Value: "VaultDB"
@@ -210,10 +194,7 @@ Resources:
                 "cognito-identity.amazonaws.com:amr": authenticated
       Policies:
         - PolicyName:
-            !Join [
-              "",
-              ["vaultdb", "-AdminUserRolePolicies-", !Ref ApplicationName],
-            ]
+            !Join ["", [!Ref ApplicationName, "-AdminUserRolePolicies"]]
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
@@ -231,7 +212,7 @@ Resources:
   VaultDBUserRole:
     Type: "AWS::IAM::Role"
     Properties:
-      RoleName: !Join ["", ["vaultdb", "-UserRole-", !Ref ApplicationName]]
+      RoleName: !Join ["", [!Ref ApplicationName, "-UserRole"]]
       Tags:
         - Key: Purpose
           Value: "VaultDB"
@@ -249,8 +230,7 @@ Resources:
               "ForAnyValue:StringLike":
                 "cognito-identity.amazonaws.com:amr": authenticated
       Policies:
-        - PolicyName:
-            !Join ["", ["vaultdb", "-UserRolePolicies-", !Ref ApplicationName]]
+        - PolicyName: !Join ["", [!Ref ApplicationName, "-UserRolePolicies"]]
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
@@ -270,8 +250,7 @@ Resources:
     DependsOn: UserPool
     Properties:
       Description: "VaultDB ReadOnly Users"
-      GroupName:
-        !Join ["", ["vaultdb", "-ReadOnlyUsers-", !Ref ApplicationName]]
+      GroupName: !Join ["", [!Ref ApplicationName, "-ReadOnlyUsers"]]
       Precedence: 1
       RoleArn: !GetAtt VaultDBUserRole.Arn
       UserPoolId: !Ref UserPool
@@ -281,8 +260,7 @@ Resources:
     DependsOn: UserPool
     Properties:
       Description: "VaultDB Administrators"
-      GroupName:
-        !Join ["", ["vaultdb", "-Administrators-", !Ref ApplicationName]]
+      GroupName: !Join ["", [!Ref ApplicationName, "-Administrators"]]
       Precedence: 10
       RoleArn: !GetAtt VaultDBAdminRole.Arn
       UserPoolId: !Ref UserPool

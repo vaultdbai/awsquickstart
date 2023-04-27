@@ -21,47 +21,6 @@ Parameters:
     Default: vaultdb@outlook.com
 
 Resources:
-  ExecuteUtilRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: !Join ["", ["vaultdb", "-execute-util-", !Ref ApplicationName]]
-      Tags:
-        - Key: Purpose
-          Value: "VaultDB"
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-            Action:
-              - sts:AssumeRole
-      Policies:
-        - PolicyName:
-            !Join [
-              "",
-              ["vaultdb", "-execute-util-policy-", !Ref ApplicationName],
-            ]
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - logs:CreateLogGroup
-                Resource: "*"
-              - Effect: Allow
-                Action:
-                  - logs:CreateLogStream
-                  - logs:PutLogEvents
-                Resource: "*"
-              - Effect: Allow
-                Action:
-                  - s3:ListMultipartUploadParts
-                  - s3:*Object
-                  - s3:ListBucket
-                Resource: "*"
-
   DeploymentUtilFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -69,12 +28,12 @@ Resources:
         - Key: Purpose
           Value: "VaultDB"
       Description: Execute Vaultdb SQL Qeries
-      FunctionName:
-        !Join ["", ["vaultdb", "-deployment-util-", !Ref ApplicationName]]
+      FunctionName: !Join ["", [!Ref ApplicationName, "-deployment-util"]]
       Handler: index.lambda_handler
       MemorySize: 128
       Runtime: python3.8
-      Role: !GetAtt ExecuteUtilRole.Arn
+      Role:
+        Fn::ImportValue: "vaultdb-cloudformation-service-role-Arn"
       Timeout: 60
       Environment:
         Variables:
@@ -93,6 +52,8 @@ Resources:
             Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
           data_bucket:
             Fn::ImportValue: !Sub "${ApplicationName}-DataBucket"
+          cloudformation_service_role_Arn:
+            Fn::ImportValue: "vaultdb-cloudformation-service-role-Arn"
       Code:
         ZipFile: |
           import boto3
@@ -122,14 +83,16 @@ Resources:
                               s3.Object(data_bucket, obj.key).delete()
                       except Exception as e2:
                           print(e2)
+                  elif event['RequestType'] == 'Update':
+                      update_stack(data_bucket)
                   elif event['RequestType'] == 'Refresh':
                       create_public_keys(data_bucket)
                   else:
                       logger.info("New files uploaded to the source bucket.")
                       deploy_folder(source_bucket, public_bucket, folder_name='workbench/')
-                      deploy_folder(source_bucket, public_bucket, folder_name='release/')
+                      deploy_folder(source_bucket, data_bucket, folder_name='release/')
                       create_pool_cofig(public_bucket)            
-                      # create_welcome_page(public_bucket)
+                      create_welcome_page(public_bucket)
                       create_public_keys(data_bucket)
                   cfnresponse.send(event, context, cfnresponse.SUCCESS, {'result':'success'}, "CustomResourcePhysicalID")
               except Exception as e:
@@ -165,6 +128,21 @@ Resources:
               welcomeobject = s3.Object(bucket_name=public_bucket, key='index.html')
               welcomeobject.put(Body=welcomehtml)            
               logger.info("Created Welcome page!")                  
+
+          def update_stack(public_bucket):
+              application_name = os.environ['application_name']
+              cloudformation_service_role_Arn = os.environ['cloudformation_service_role_Arn']
+                          
+              cf_client = boto3.client('cloudformation')
+              response = cf_client.update_stack(
+                  StackName = application_name,
+                  UsePreviousTemplate=True,
+                  Capabilities = ['CAPABILITY_NAMED_IAM', 'CAPABILITY_AUTO_EXPAND'],
+                  RoleARN=cloudformation_service_role_Arn
+                  )                
+              logger.info(response)                  
+              logger.info("Started Stack Update!")                  
+              return response
 
           def create_pool_cofig(public_bucket):
               application_name = os.environ['application_name']              

@@ -22,16 +22,7 @@ Resources:
     Type: "AWS::S3::Bucket"
     Properties:
       BucketName:
-        !Join [
-          "",
-          [
-            "vaultdb",
-            "-data-",
-            !Sub "${AWS::AccountId}",
-            "-",
-            !Ref ApplicationName,
-          ],
-        ]
+        !Join ["", [!Ref ApplicationName, "-data-", !Sub "${AWS::AccountId}"]]
       Tags:
         - Key: Purpose
           Value: "VaultDB"
@@ -46,13 +37,7 @@ Resources:
       BucketName:
         !Join [
           "",
-          [
-            "vaultdb",
-            "-public-storage-",
-            !Sub "${AWS::AccountId}",
-            "-",
-            !Ref ApplicationName,
-          ],
+          [!Ref ApplicationName, "-public-storage-", !Sub "${AWS::AccountId}"],
         ]
       Tags:
         - Key: Purpose

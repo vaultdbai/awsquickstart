@@ -82,8 +82,7 @@ Resources:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
       GroupDescription: "security group for the prod EFS"
-      GroupName:
-        !Join ["", ["vaultdb", "-data-securitygroup-", !Ref ApplicationName]]
+      GroupName: !Join ["", [!Ref ApplicationName, "-data-securitygroup"]]
       VpcId:
         Fn::ImportValue: !Sub "${ApplicationName}-VPC"
       Tags:
