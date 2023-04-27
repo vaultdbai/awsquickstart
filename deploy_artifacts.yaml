@@ -125,8 +125,8 @@ Resources:
               except:
                   logger.info("template error")    
                   
-              welcomeobject = s3.Object(bucket_name=public_bucket, key='index.html', ContentType='text/html')
-              welcomeobject.put(Body=welcomehtml)            
+              welcomeobject = s3.Object(bucket_name=public_bucket, key='index.html')
+              welcomeobject.put(Body=welcomehtml, ContentType='text/html')            
               logger.info("Created Welcome page!")                  
 
           def update_stack(public_bucket):
