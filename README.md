@@ -4,15 +4,9 @@ This repository contains the VaultDB ai platform aws quickstart templates.
 
 ## TODO:
 
-### 1) Create Diagram
+### 1) Add Push with or without event functionality right away
 
-    https://diagrams.mingrammer.com/docs/getting-started/examples
-
-### 2) Run Deploy Lambda with Service Role as Executor Role
-
-### 3) Provide Update Button on Website to update and deploy lambda to kick off update to Stack
-
-### 4) Low Priority:-- Provide Ability to Delete and Recreate EFS Interface EndPoint to save Cost when system is not required
+### 2) Provide Update Button on Website to update and deploy lambda to kick off update to Stack
 
 ## Create Service Role
 
