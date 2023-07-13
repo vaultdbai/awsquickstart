@@ -137,6 +137,7 @@ Resources:
           import os
           import logging
           import json
+          import glob
           from json import JSONEncoder
           import vaultdb
 
@@ -175,6 +176,9 @@ Resources:
                   if preferred_role.endswith('-AdminRole'):
                       preferred_role = preferred_role[:-10]
                   logger.info(f'role: {preferred_role}')
+                  if 'RequestType' in event and event['RequestType'] == 'fetch-catalogues':
+                    catalogues = glob.glob(f"{commitlog_directory}/*.db")
+                    return {"result":"Success", "data":catalogues}
                   repo = event['database']
                   logger.info(f'repo: {repo}')
                   catalog = event['catalog']
@@ -182,7 +186,7 @@ Resources:
                   payload = event['payload']
                   logger.info(f'payload: {payload}')
 
-                  connection = vaultdb.connect(f"{commitlog_directory}/{repo}.db", False, preferred_role, config={'allow_unsigned_extensions' : 'true'})
+                  connection = vaultdb.connect(f"{commitlog_directory}/{catalog}.db", False, preferred_role, config={'allow_unsigned_extensions' : 'true'})
                   df = connection.execute(payload).fetchdf()
                   return {"result":"Success", "data":df.to_json(orient="index")}
               except Exception as ex:

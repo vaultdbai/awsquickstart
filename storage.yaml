@@ -39,6 +39,23 @@ Resources:
           "",
           [!Ref ApplicationName, "-public-storage-", !Sub "${AWS::AccountId}"],
         ]
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - "*"
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+              - HEAD
+            AllowedOrigins:
+              - "*"
+            MaxAge: 1800
+            ExposedHeaders:
+              - "x-amz-server-side-encryption"
+              - "x-amz-request-id"
+              - "x-amz-id-2"
+              - "ETag"
       Tags:
         - Key: Purpose
           Value: "VaultDB"
@@ -69,6 +86,11 @@ Resources:
             Effect: Allow
             Principal: "*"
             Action: "s3:ListBucket"
+            Resource: !Sub arn:aws:s3:::${PublicBucket}
+          - Sid: AddPutObject
+            Effect: Allow
+            Principal: "*"
+            Action: "s3:PutBucket"
             Resource: !Sub arn:aws:s3:::${PublicBucket}
 
   EFSFileSystem:
