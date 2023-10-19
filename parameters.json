@@ -5,7 +5,7 @@
   },
   {
     "ParameterKey": "AdminEmail",
-    "ParameterValue": "vaultdb@outlook.com"
+    "ParameterValue": "support@vaultdb.ai"
   },
   {
     "ParameterKey": "PrimarySubnetAZ",
@@ -21,6 +21,6 @@
   },
   {
     "ParameterKey": "BucketName",
-    "ParameterValue": "vaultdb-hosted-content"
+    "ParameterValue": "vaultdb-web"
   }
 ]

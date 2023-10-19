@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: VPC Nested stack
 Metadata:
   Author: VaultDB.ai
-  Url: https://vaultdb.ai
+  Url: https://www.vaultdb.ai
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
