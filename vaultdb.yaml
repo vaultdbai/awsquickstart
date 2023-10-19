@@ -22,12 +22,12 @@ Parameters:
 
   BucketName:
     Type: String
-    Default: "vaultdb-hosted-content"
+    Default: "vaultdb-web"
     Description: Vaultdb Cloudformation template store. Please do not change unless you have custom templates.
 
 Metadata:
   Author: VaultDB.ai
-  Url: https://vaultdb.ai
+  Url: https://www.vaultdb.ai
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:

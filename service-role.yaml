@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: IAM service role for cloud formation
 Metadata:
   Author: VaultDB.ai
-  Url: https://vaultdb.ai
+  Url: https://www.vaultdb.ai
 Resources:
   ServiceRole:
     Type: AWS::IAM::Role

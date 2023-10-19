@@ -24,7 +24,7 @@
     <p>
       <a
         target="vaultdb_cloudformation"
-        href="https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=vaultdb-service-role&templateURL=https://vaultdb-hosted-content.s3.us-east-2.amazonaws.com/awsquickstart/service-role.yaml"
+        href="https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=vaultdb-service-role&templateURL=https://vaultdb-web.s3.us-east-2.amazonaws.com/awsquickstart/service-role.yaml"
       >
         <img
           alt="launch stack button"
@@ -34,13 +34,13 @@
       </a>
     </p>
     <h4>AWS CLI Command to Create Service Role</h4>
-    <pre><code>awsv2 cloudformation create-stack --stack-name vaultdb-service-role --template-body https://vaultdb-hosted-content.s3.us-east-2.amazonaws.com/awsquickstart/service-role.yaml --capabilities CAPABILITY_NAMED_IAM
+    <pre><code>awsv2 cloudformation create-stack --stack-name vaultdb-service-role --template-body https://vaultdb-web.s3.us-east-2.amazonaws.com/awsquickstart/service-role.yaml --capabilities CAPABILITY_NAMED_IAM
     </code></pre>
     <h4>Create VaultDB Instance using Service Role created above</h4>
     <p>
       <a
         target="vaultdb_cloudformation"
-        href="https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=vaultdb-database&templateURL=https://vaultdb-hosted-content.s3.us-east-2.amazonaws.com/awsquickstart/vaultdb.yaml"
+        href="https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=vaultdb-database&templateURL=https://vaultdb-web.s3.us-east-2.amazonaws.com/awsquickstart/vaultdb.yaml"
       >
         <img
           alt="launch stack button"
@@ -50,7 +50,7 @@
       </a>
     </p>
     <h4>AWS CLI Command to Create VaultDB Instance</h4>
-    <pre><code>awsv2 cloudformation create-stack --stack-name [APPLICATION-STACK-NAME] --role-arn &quot;arn:aws:iam::[AWS-ACCOUNT-NUMBER]:role/vaultdb_cloudformation_service_role&quot; --template-url https://vaultdb-hosted-content.s3.us-east-2.amazonaws.com/awsquickstart/vaultdb.yaml --parameters ParameterKey=&quot;AdminEmail&quot;,ParameterValue=&quot;[APPLICATION-ADMIN-EMAIL-ADDRESS]&quot; ParameterKey=&quot;PrimarySubnetAZ&quot;,ParameterValue=&quot;[AWS-REGION]&quot; ParameterKey=&quot;ExistingVpcID&quot;,ParameterValue=&quot;[VPC-ID]&quot; ParameterKey=&quot;PrivateSubnetCIDR&quot;,ParameterValue=&quot;[PRIVATE-SUBNET-CIDR]&quot; ParameterKey=&quot;BucketName&quot;,ParameterValue=&quot;vaultdb-hosted-content&quot; --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND
+    <pre><code>awsv2 cloudformation create-stack --stack-name [APPLICATION-STACK-NAME] --role-arn &quot;arn:aws:iam::[AWS-ACCOUNT-NUMBER]:role/vaultdb_cloudformation_service_role&quot; --template-url https://vaultdb-web.s3.us-east-2.amazonaws.com/awsquickstart/vaultdb.yaml --parameters ParameterKey=&quot;AdminEmail&quot;,ParameterValue=&quot;[APPLICATION-ADMIN-EMAIL-ADDRESS]&quot; ParameterKey=&quot;PrimarySubnetAZ&quot;,ParameterValue=&quot;[AWS-REGION]&quot; ParameterKey=&quot;ExistingVpcID&quot;,ParameterValue=&quot;[VPC-ID]&quot; ParameterKey=&quot;PrivateSubnetCIDR&quot;,ParameterValue=&quot;[PRIVATE-SUBNET-CIDR]&quot; ParameterKey=&quot;BucketName&quot;,ParameterValue=&quot;vaultdb-web&quot; --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND
 
     Values you can use:-- 
         APPLICATION-STACK-NAME

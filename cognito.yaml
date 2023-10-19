@@ -13,7 +13,7 @@ Parameters:
 
 Metadata:
   Author: VaultDB.ai
-  Url: https://vaultdb.ai
+  Url: https://www.vaultdb.ai
 
 Resources:
   # Creates a user pool in cognito for your app to auth against
