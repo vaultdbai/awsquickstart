@@ -154,6 +154,7 @@ Resources:
               application_name = os.environ['application_name']              
               user_pool_client_id = os.environ['user_pool_client_id']
               identity_pool_id = os.environ['identity_pool_id']
+              public_bucket = os.environ['public_bucket']
 
               logger.info(f"Creating workbench config file for pool {user_pool_id}!") 
 
@@ -162,6 +163,7 @@ Resources:
               window.USER_POOL_ID= "{user_pool_id}";
               window.USER_POOL_APP_CLIENT_ID= "{user_pool_client_id}";
               window.USER_IDENTITY_POOL_ID= "{identity_pool_id}";
+              window.USER_BUCKET= "{public_bucket}";
               """
 
               object = s3.Object(bucket_name=public_bucket, key='workbench/config.js')
