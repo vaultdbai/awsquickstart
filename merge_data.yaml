@@ -21,39 +21,37 @@ Parameters:
     Default: support@vaultdb.ai
 
 Resources:
-  DeploymentUtilFunction:
+  MergeDataFunction:
     Type: AWS::Lambda::Function
     Properties:
       Tags:
         - Key: Purpose
           Value: "VaultDB"
-      Description: Execute Vaultdb SQL Qeries
-      FunctionName: !Join ["", [!Ref ApplicationName, "-deployment-util"]]
+      Description: Merge Data into VaultDB Hub
+      FunctionName: !Join ["", [!Ref ApplicationName, "-merge-data"]]
       Handler: index.lambda_handler
       MemorySize: 128
       Runtime: python3.8
       Role:
-        Fn::ImportValue: "vaultdb-cloudformation-service-role-Arn"
+        Fn::ImportValue: !Sub "${ApplicationName}-ExecuteRole"
       Timeout: 60
       Environment:
         Variables:
           application_name: !Sub "${ApplicationName}"
           admin_email: !Sub "${AdminEmail}"
-          AWS_STS_REGIONAL_ENDPOINTS: "regional"
           aws_region: !Sub "${AWS::Region}"
+          AWS_STS_REGIONAL_ENDPOINTS: "regional"
+          commitlog_directory: "/mnt/commitlog"
+          public_bucket:
+            Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
+          data_store:
+            Fn::ImportValue: !Sub "${ApplicationName}-DataBucket"
           user_pool_id:
             Fn::ImportValue: !Sub "${ApplicationName}-UserPool"
           user_pool_client_id:
             Fn::ImportValue: !Sub "${ApplicationName}-UserPoolClient"
           identity_pool_id:
             Fn::ImportValue: !Sub "${ApplicationName}-IdentityPool"
-          source_bucket: !Ref SourceBucketName
-          public_bucket:
-            Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
-          data_bucket:
-            Fn::ImportValue: !Sub "${ApplicationName}-DataBucket"
-          cloudformation_service_role_Arn:
-            Fn::ImportValue: "vaultdb-cloudformation-service-role-Arn"
       Code:
         ZipFile: |
           import boto3
@@ -154,7 +152,6 @@ Resources:
               application_name = os.environ['application_name']              
               user_pool_client_id = os.environ['user_pool_client_id']
               identity_pool_id = os.environ['identity_pool_id']
-              public_bucket = os.environ['public_bucket']
 
               logger.info(f"Creating workbench config file for pool {user_pool_id}!") 
 
@@ -163,7 +160,6 @@ Resources:
               window.USER_POOL_ID= "{user_pool_id}";
               window.USER_POOL_APP_CLIENT_ID= "{user_pool_client_id}";
               window.USER_IDENTITY_POOL_ID= "{identity_pool_id}";
-              window.USER_BUCKET= "{public_bucket}";
               """
 
               object = s3.Object(bucket_name=public_bucket, key='workbench/config.js')
@@ -192,35 +188,35 @@ Resources:
   ScheduledRule:
     Type: AWS::Events::Rule
     Properties:
-      Description: "Scheduled Key Refresh"
-      ScheduleExpression: "cron(15 10 ? * 6L *)"
+      Description: "Scheduled data merge Runs"
+      ScheduleExpression: "cron(0 17 * * ? *)" # Runs every day at 5 PM UTC
       State: "ENABLED"
       Targets:
-        - Arn: !GetAtt DeploymentUtilFunction.Arn
+        - Arn: !GetAtt MergeDataFunction.Arn
           Id: "UpdateKeysWeekly"
           Input: '{"RequestType":  "Refresh"}'
 
   PermissionForEventsToInvokeLambda:
     Type: AWS::Lambda::Permission
     Properties:
-      FunctionName: !Ref DeploymentUtilFunction
+      FunctionName: !Ref MergeDataFunction
       Action: "lambda:InvokeFunction"
       Principal: "events.amazonaws.com"
-      SourceArn: !GetAtt DeploymentUtilFunction.Arn
+      SourceArn: !GetAtt MergeDataFunction.Arn
 
   DeployInvoke:
     Type: AWS::CloudFormation::CustomResource
-    DependsOn: DeploymentUtilFunction
+    DependsOn: MergeDataFunction
     Properties:
-      ServiceToken: !GetAtt DeploymentUtilFunction.Arn
+      ServiceToken: !GetAtt MergeDataFunction.Arn
 
 Outputs:
-  DeploymentUtilFunction:
-    Description: VaultDB Deployment Util Function
-    Value: !Ref DeploymentUtilFunction
+  MergeDataFunction:
+    Description: VaultDB Data Merge Function
+    Value: !Ref MergeDataFunction
     Export:
-      Name: !Sub ${ApplicationName}-DeploymentUtilFunction
+      Name: !Sub ${ApplicationName}-MergeDataFunction
   CLI:
     Description: Use this command to copy files
     Value: !Sub |
-      aws lambda invoke --function-name '${ApplicationName}-deployment-util' --payload '{ "RequestType": "Refresh" }' lambda-output.txt --cli-binary-format raw-in-base64-out
+      aws lambda invoke --function-name '${ApplicationName}-merge-data' --payload '{ "Bucket": "${ApplicationName}-PublicBucket", "path": "merge_queue" }' lambda-output.txt --cli-binary-format raw-in-base64-out
