@@ -10,7 +10,7 @@ This repository contains the VaultDB ai platform aws quickstart templates.
 
 ## Create Service Role
 
-#### [![Launch stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=vaultdb-service-role&templateURL=https://vaultdb-web.s3.us-east-2.amazonaws.com/awsquickstart/service-role.yaml)
+#### [![Launch stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=vaultdb-service-role&templateURL=https://vaultdb-web.s3.us-east-2.amazonaws.com/vaultdb-web/awsquickstart/service-role.yaml)
 
 ### AWS CLI Command to Create Cloud Formation Service Role
 
@@ -32,7 +32,7 @@ This repository contains the VaultDB ai platform aws quickstart templates.
 
 ### Note: Make sure to pick the vaultdb_cloudformation_service_role
 
-### [![Launch stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=vaultdb-development-instance&templateURL=https://vaultdb-web.s3.us-east-2.amazonaws.com/awsquickstart/vaultdb.yaml)
+### [![Launch stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=vaultdb-development-instance&templateURL=https://vaultdb-web.s3.us-east-2.amazonaws.com/vaultdb-web/awsquickstart/vaultdb.yaml)
 
 ### AWS CLI Command to Create VaultDB Instance
 
@@ -58,7 +58,7 @@ awsv2 cloudformation delete-stack --stack-name [APPLICATION-STACK-NAME]
 
 ### create
 
-awsv2 cloudformation update-stack --stack-name dev --role-arn "arn:aws:iam::[AWS-ACCOUNT-NUMBER]:role/vaultdb_cloudformation_service_role" --template-url https://vaultdb-web.s3.us-east-2.amazonaws.com/awsquickstart/vaultdb.yaml --parameters ParameterKey="AdminEmail",ParameterValue="vaultdb@outlook.com" ParameterKey="PrimarySubnetAZ",ParameterValue="us-east-1a" ParameterKey="ExistingVpcID",ParameterValue="vpc-053032fa3ede15b8b" ParameterKey="PrivateSubnetCIDR",ParameterValue="172.31.200.0/20" ParameterKey="BucketName",ParameterValue="vaultdb-web" --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND
+awsv2 cloudformation update-stack --stack-name [APPLICATION-NAME] --role-arn "arn:aws:iam::[AWS-ACCOUNT-NUMBER]:role/vaultdb_cloudformation_service_role" --template-url https://vaultdb-web.s3.us-east-2.amazonaws.com/vaultdb-web/awsquickstart/vaultdb.yaml --parameters ParameterKey="AdminEmail",ParameterValue="[SUPPORT-TEAM-EMAIL-ADDRESS]" ParameterKey="PrimarySubnetAZ",ParameterValue="[AWS-REGION]" ParameterKey="ExistingVpcID",ParameterValue="[VPC-ID]" ParameterKey="PrivateSubnetCIDR",ParameterValue="172.31.200.0/20" ParameterKey="BucketName",ParameterValue="vaultdb-web" --capabilities CAPABILITY_NAMED_IAM CAPABILITY_AUTO_EXPAND
 
 ### Delete/ Uninstall
 
