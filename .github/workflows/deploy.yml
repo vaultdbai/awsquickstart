@@ -4,6 +4,21 @@ on:
   workflow_dispatch:
 #  schedule:
 #    - cron: "0 2 * * *"
+  repository_dispatch:
+  push:
+    branches:
+      - 'master'
+    tags:
+      - '**'
+    paths-ignore:
+      - '**.md'
+      - 'examples/**'
+      - 'test/**'
+      - '.github/workflows/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref || '' }}-${{ github.base_ref || '' }}-${{ github.ref != 'refs/heads/master' || github.sha }}
+  cancel-in-progress: true
 
 env:
   GH_TOKEN: ${{ secrets.GH_TOKEN }}
