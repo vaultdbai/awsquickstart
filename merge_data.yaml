@@ -30,20 +30,21 @@ Resources:
       Description: Merge Data into VaultDB Hub
       FunctionName: !Join ["", [!Ref ApplicationName, "-merge-data"]]
       Handler: index.lambda_handler
-      MemorySize: 128
-      Runtime: python3.8
-      Role:
+      Role: 
         Fn::ImportValue: !Sub "${ApplicationName}-ExecuteRole"
+      MemorySize: 128
       Timeout: 60
+      Layers:
+        - Fn::ImportValue: !Sub "${ApplicationName}-VaultDBPythonLayer"
+      Runtime: python3.8
+      Architectures:
+        - x86_64
       Environment:
         Variables:
           application_name: !Sub "${ApplicationName}"
-          admin_email: !Sub "${AdminEmail}"
           aws_region: !Sub "${AWS::Region}"
           AWS_STS_REGIONAL_ENDPOINTS: "regional"
           commitlog_directory: "/mnt/commitlog"
-          public_bucket:
-            Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
           data_store:
             Fn::ImportValue: !Sub "${ApplicationName}-DataBucket"
           user_pool_id:
@@ -52,151 +53,92 @@ Resources:
             Fn::ImportValue: !Sub "${ApplicationName}-UserPoolClient"
           identity_pool_id:
             Fn::ImportValue: !Sub "${ApplicationName}-IdentityPool"
+      VpcConfig:
+        SecurityGroupIds:
+          - Fn::ImportValue: !Sub "${ApplicationName}-DataSecurityGroup"
+        SubnetIds:
+          - Fn::ImportValue: !Sub "${ApplicationName}-VPCPrivateSubnet"
+      FileSystemConfigs:
+        - Arn: !GetAtt AccessPointResource.Arn
+          LocalMountPath: /mnt/commitlog
       Code:
         ZipFile: |
-          import boto3
-          import cfnresponse
-          import botocore
+          # Imports
           import os
-          import logging          
+          import logging
+          import json
+          import duckdb
+          import boto3
 
+          # Set up the logger
           logger = logging.getLogger()
-          logger.setLevel(logging.INFO)
+          logger.setLevel(logging.DEBUG) # Very verbose
 
-          s3 = boto3.resource('s3')
-          aws_region = os.environ['aws_region']
-          user_pool_id = os.environ['user_pool_id']
-          source_bucket = os.environ['source_bucket']
-          public_bucket = os.environ['public_bucket']
-          data_bucket = os.environ['data_bucket']
+          application_name = os.environ['application_name'] if "application_name" in os.environ else ""
+          aws_region = os.environ['aws_region'] if "aws_region" in os.environ else "us-east-1"
+          commitlog_directory = os.environ['commitlog_directory'] if "commitlog_directory" in os.environ else "/tmp"
+          data_store = os.environ['data_store'] if "data_store" in os.environ else None
+          app_client_id = os.environ['user_pool_client_id'] if "user_pool_client_id" in os.environ else None
+
 
           def lambda_handler(event, context):
+              logger.info(f'event: {event}')
+
               try:
-                  logger.info(f"event: {event}!")               
-                  if event['RequestType'] == 'Delete':
-                      for obj in s3.Bucket(public_bucket).objects.filter():
-                          s3.Object(public_bucket, obj.key).delete()
-                      try:
-                          for obj in s3.Bucket(data_bucket).objects.filter():
-                              s3.Object(data_bucket, obj.key).delete()
-                      except Exception as e2:
-                          print(e2)
-                  elif event['RequestType'] == 'Update':
-                      update_stack(data_bucket)
-                  elif event['RequestType'] == 'Refresh':
-                      create_public_keys(data_bucket)
-                  else:
-                      logger.info("New files uploaded to the source bucket.")
-                      deploy_folder(source_bucket, public_bucket, folder_name='workbench/')
-                      deploy_folder(source_bucket, data_bucket, folder_name='release/')
-                      create_pool_cofig(public_bucket)            
-                      create_welcome_page(public_bucket)
-                      create_public_keys(data_bucket)
-                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {'result':'success'}, "CustomResourcePhysicalID")
-              except Exception as e:
-                  print(e)
-                  cfnresponse.send(event, context, cfnresponse.FAILED, {'error':str(e)}, "CustomResourcePhysicalID")
+                  # Create a Boto3 S3 client
+                  s3_client = boto3.client('s3')
 
-          def create_public_keys(data_bucket):
-              import urllib.request
-              logger.info("Creating JWT Public Keys Json!")
-              keys_url = 'https://cognito-idp.{}.amazonaws.com/{}/.well-known/jwks.json'.format(aws_region, user_pool_id)
-              with urllib.request.urlopen(keys_url) as f:
-                  response = f.read()                  
-              keysobject = s3.Object(bucket_name=data_bucket, key='jwks.json')
-              keysobject.put(Body=response.decode('utf-8'))            
-              logger.info("Created JWT Public Keys!")                  
+                  for record in event['Records']:
+                      source_bucket = record['s3']['bucket']['name']
+                      file_key = record['s3']['object']['key']
+                      preferred_role = file_key.split('/')[1]    
+                      database_name = file_key.split('/')[1]    
+                      # Retrieve the object from S3
+                      response = s3_client.get_object(Bucket=source_bucket, Key=file_key)            
+                      # Read the file content line by line
+                      file_content = response['Body'].iter_lines()
+                      # connect to database
+                      connection = duckdb.connect(f"{commitlog_directory}/{database_name}.db", False, preferred_role, config={'allow_unsigned_extensions' : 'true'})
+                      # Process each line of the file
+                      for line in file_content:
+                          stmt = line.trim()
+                          if stmt:
+                              logger.info(f'Executing Statement: {line}')
+                              stmt_result = connection.execute(stmt)
+                              logger.info(f'Statement Result: {stmt_result}')
 
-          def create_welcome_page(public_bucket):
-              logger.info("Creating Welcome page!")                  
-              application_name = os.environ['application_name']
-              admin_email = os.environ['admin_email']
-              response = s3.meta.client.get_object(Bucket=source_bucket, Key="welcome_template.html")
-              welcomehtml = response['Body'].read().decode('utf-8')
-              try:
-                  import pystache
-                  data = {
-                  "name": application_name,
-                  "email": admin_email
-                  }
-                  welcomehtml = pystache.render(welcomehtml, data)
-              except:
-                  logger.info("template error")    
-                  
-              welcomeobject = s3.Object(bucket_name=public_bucket, key='index.html')
-              welcomeobject.put(Body=welcomehtml, ContentType='text/html')            
-              logger.info("Created Welcome page!")                  
+                  return {"result":"Success"}
+              except Exception as ex:
+                  logger.error(ex)
+                  return {"result":"Error", "message":str(ex)}
 
-          def update_stack(public_bucket):
-              application_name = os.environ['application_name']
-              cloudformation_service_role_Arn = os.environ['cloudformation_service_role_Arn']
-                          
-              cf_client = boto3.client('cloudformation')
-              response = cf_client.update_stack(
-                  StackName = application_name,
-                  UsePreviousTemplate=True,
-                  Capabilities = ['CAPABILITY_NAMED_IAM', 'CAPABILITY_AUTO_EXPAND'],
-                  RoleARN=cloudformation_service_role_Arn,
-                  Parameters=[
-                  {'ParameterKey': 'PrivateSubnetCIDR','UsePreviousValue': True,},
-                  {'ParameterKey': 'PrimarySubnetAZ','UsePreviousValue': True,},
-                  {'ParameterKey': 'ExistingVpcID','UsePreviousValue': True,},
-                  {'ParameterKey': 'AdminEmail','UsePreviousValue': True,}
-                  ]
-                  )                
-              logger.info(response)                  
-              logger.info("Started Stack Update!")                  
-              return response
+  MergeDataWhenPushedEvent:
+    Type: AWS::S3::Bucket
+    Properties:
+      Bucket: 
+        Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: s3:ObjectCreated:*
+            Function: MergeDataFunction
+            Filter:
+              S3Key:
+                Rules:
+                  - prefix: merge_queue/
+                  - suffix: 'load.sql'
 
-          def create_pool_cofig(public_bucket):
-              application_name = os.environ['application_name']              
-              user_pool_client_id = os.environ['user_pool_client_id']
-              identity_pool_id = os.environ['identity_pool_id']
-
-              logger.info(f"Creating workbench config file for pool {user_pool_id}!") 
-
-              data_string = f"""window.APPLICATION_NAME = "{application_name}";
-              window.REGION= "{aws_region}";
-              window.USER_POOL_ID= "{user_pool_id}";
-              window.USER_POOL_APP_CLIENT_ID= "{user_pool_client_id}";
-              window.USER_IDENTITY_POOL_ID= "{identity_pool_id}";
-              """
-
-              object = s3.Object(bucket_name=public_bucket, key='workbench/config.js')
-              object.put(Body=data_string)            
-              logger.info("Created workbench config file!")                  
-
-          def deploy_folder(source_bucket, public_bucket, folder_name, destination=None):
-              try:                  
-                  for key in s3.meta.client.list_objects(Bucket=source_bucket, Prefix=folder_name)['Contents']:
-                      file = key['Key']
-                      if file==folder_name:
-                          continue
-                      logger.info(f"Copying file {file}")
-                      source = {'Bucket': source_bucket, 'Key': file}
-                      if destination is not None:
-                          file=file.replace(folder_name, destination)
-                      response = s3.meta.client.copy(source, public_bucket, file)
-                  logger.info(f"Copied {folder_name} files!")
-              except botocore.exceptions.ClientError as error:
-                  logger.error("There was an error copying the file to the destination bucket")
-                  print('Error Message: {}'.format(error))        
-              except botocore.exceptions.ParamValidationError as error:
-                  logger.error("Missing required parameters while calling the API.")
-                  print('Error Message: {}'.format(error))
-
-  ScheduledRule:
+  ScheduleMergedRule:
     Type: AWS::Events::Rule
     Properties:
       Description: "Scheduled data merge Runs"
       ScheduleExpression: "cron(0 17 * * ? *)" # Runs every day at 5 PM UTC
-      State: "ENABLED"
+      State: "DISABLED"
       Targets:
         - Arn: !GetAtt MergeDataFunction.Arn
           Id: "UpdateKeysWeekly"
           Input: '{"RequestType":  "Refresh"}'
 
-  PermissionForEventsToInvokeLambda:
+  PermissionForEventsToInvokeMergeLambda:
     Type: AWS::Lambda::Permission
     Properties:
       FunctionName: !Ref MergeDataFunction
@@ -204,7 +146,7 @@ Resources:
       Principal: "events.amazonaws.com"
       SourceArn: !GetAtt MergeDataFunction.Arn
 
-  DeployInvoke:
+  MergeInvoke:
     Type: AWS::CloudFormation::CustomResource
     DependsOn: MergeDataFunction
     Properties:
