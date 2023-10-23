@@ -1,0 +1,163 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: VaultDB Lambda funtion to execute Queries
+Metadata:
+  Author: VaultDB.ai
+  Url: https://www.vaultdb.ai
+
+Parameters:
+  ApplicationName:
+    Type: String
+    AllowedPattern: "^[a-z][a-z0-9-]{0,48}[a-z0-9]$"
+    Description: Enter the name of your application with no spaces.
+
+Resources:
+  MergeDataFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Tags:
+        - Key: Purpose
+          Value: "VaultDB"
+      Description: Merge Data into VaultDB Hub
+      FunctionName: !Join ["", [!Ref ApplicationName, "-merge-data"]]
+      Handler: index.lambda_handler
+      Role: 
+        Fn::ImportValue: !Sub "${ApplicationName}-ExecuteRole"
+      MemorySize: 128
+      Timeout: 60
+      Layers:
+        - Fn::ImportValue: !Sub "${ApplicationName}-VaultDBPythonLayer"
+      Runtime: python3.8
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          application_name: !Sub "${ApplicationName}"
+          aws_region: !Sub "${AWS::Region}"
+          AWS_STS_REGIONAL_ENDPOINTS: "regional"
+          commitlog_directory: "/mnt/commitlog"
+          data_store:
+            Fn::ImportValue: !Sub "${ApplicationName}-DataBucket"
+          user_pool_id:
+            Fn::ImportValue: !Sub "${ApplicationName}-UserPool"
+          user_pool_client_id:
+            Fn::ImportValue: !Sub "${ApplicationName}-UserPoolClient"
+          identity_pool_id:
+            Fn::ImportValue: !Sub "${ApplicationName}-IdentityPool"
+      VpcConfig:
+        SecurityGroupIds:
+          - Fn::ImportValue: !Sub "${ApplicationName}-DataSecurityGroup"
+        SubnetIds:
+          - Fn::ImportValue: !Sub "${ApplicationName}-VPCPrivateSubnet"
+      FileSystemConfigs:
+        - Arn: !GetAtt AccessPointResource.Arn
+          LocalMountPath: /mnt/commitlog
+      Code:
+        ZipFile: |
+          # Imports
+          import os
+          import logging
+          import json
+          import duckdb
+          import boto3
+
+          # Set up the logger
+          logger = logging.getLogger()
+          logger.setLevel(logging.DEBUG) # Very verbose
+
+          application_name = os.environ['application_name'] if "application_name" in os.environ else ""
+          aws_region = os.environ['aws_region'] if "aws_region" in os.environ else "us-east-1"
+          commitlog_directory = os.environ['commitlog_directory'] if "commitlog_directory" in os.environ else "/tmp"
+          data_store = os.environ['data_store'] if "data_store" in os.environ else None
+          app_client_id = os.environ['user_pool_client_id'] if "user_pool_client_id" in os.environ else None
+
+
+          def lambda_handler(event, context):
+              logger.info(f'event: {event}')
+
+              try:
+                  # Create a Boto3 S3 client
+                  s3_client = boto3.client('s3')
+
+                  for record in event['Records']:
+                      source_bucket = record['s3']['bucket']['name']
+                      file_key = record['s3']['object']['key']
+                      preferred_role = file_key.split('/')[1]    
+                      database_name = file_key.split('/')[1]    
+                      # Retrieve the object from S3
+                      response = s3_client.get_object(Bucket=source_bucket, Key=file_key)            
+                      # Read the file content line by line
+                      file_content = response['Body'].iter_lines()
+                      # connect to database
+                      connection = duckdb.connect(f"{commitlog_directory}/{database_name}.db", False, preferred_role, config={'allow_unsigned_extensions' : 'true'})
+                      # Process each line of the file
+                      for line in file_content:
+                          stmt = line.trim()
+                          if stmt:
+                              logger.info(f'Executing Statement: {line}')
+                              stmt_result = connection.execute(stmt)
+                              logger.info(f'Statement Result: {stmt_result}')
+
+                  return {"result":"Success"}
+              except Exception as ex:
+                  logger.error(ex)
+                  return {"result":"Error", "message":str(ex)}
+
+  MergeDataWhenPushedEvent:
+    Type: AWS::S3::Bucket
+    Properties:      
+      BucketName: !Sub "${ApplicationName}-PublicBucket"
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: s3:ObjectCreated:*
+            Function: MergeDataFunction
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: merge_queue/
+                  - Name: suffix
+                    Value: load.sql
+
+  S3InvokeLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref MergeDataFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !Sub arn:aws:s3:::${ApplicationName}-PublicBucket
+
+  ScheduleMergedRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "Scheduled data merge Runs"
+      ScheduleExpression: "cron(0 17 * * ? *)" # Runs every day at 5 PM UTC
+      State: "DISABLED"
+      Targets:
+        - Arn: !GetAtt MergeDataFunction.Arn
+          Id: "UpdateKeysWeekly"
+          Input: '{"RequestType":  "Refresh"}'
+
+  PermissionForEventsToInvokeMergeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref MergeDataFunction
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt MergeDataFunction.Arn
+
+  MergeInvoke:
+    Type: AWS::CloudFormation::CustomResource
+    DependsOn: MergeDataFunction
+    Properties:
+      ServiceToken: !GetAtt MergeDataFunction.Arn
+
+Outputs:
+  MergeDataFunction:
+    Description: VaultDB Data Merge Function
+    Value: !Ref MergeDataFunction
+    Export:
+      Name: !Sub ${ApplicationName}-MergeDataFunction
+  CLI:
+    Description: Use this command to copy files
+    Value: !Sub |
+      aws lambda invoke --function-name '${ApplicationName}-merge-data' --payload '{ "Bucket": "${ApplicationName}-PublicBucket", "path": "merge_queue" }' lambda-output.txt --cli-binary-format raw-in-base64-out

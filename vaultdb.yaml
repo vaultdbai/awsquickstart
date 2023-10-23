@@ -126,3 +126,15 @@ Resources:
           - "/awsquickstart/lambda.yaml"
       Parameters:
         ApplicationName: !Ref AWS::StackName
+
+  MergeDeploymentStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: LambdaDeploymentStack
+    Properties:
+      TemplateURL: !Join
+        - ""
+        - - "https://s3.us-east-2.amazonaws.com/"
+          - !Ref BucketName
+          - "/awsquickstart/merge_data.yaml"
+      Parameters:
+        ApplicationName: !Ref AWS::StackName

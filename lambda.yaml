@@ -257,6 +257,12 @@ Outputs:
     Value: !Ref ExecuteQueryFunction
     Export:
       Name: !Sub ${ApplicationName}-ExecuteQueryFunction
+  VaultDBPythonLayer:
+    Description: VaultDB Python Layer
+    Value: !Ref VaultDBPythonLayer
+    Export:
+      Name: !Sub ${ApplicationName}-VaultDBPythonLayer
+      
   CLI:
     Description: Use this command to invoke the Lambda function
     Value: !Sub |

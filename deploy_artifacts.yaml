@@ -223,4 +223,4 @@ Outputs:
   CLI:
     Description: Use this command to copy files
     Value: !Sub |
-      aws lambda invoke --function-name 'vaultdb--deployment-util-${ApplicationName}' --payload '{ "Bucket": "test_bucket", "path": "tes" }' lambda-output.txt --cli-binary-format raw-in-base64-out
+      aws lambda invoke --function-name '${ApplicationName}-deployment-util' --payload '{ "RequestType": "Refresh" }' lambda-output.txt --cli-binary-format raw-in-base64-out
