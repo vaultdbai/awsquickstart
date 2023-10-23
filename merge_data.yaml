@@ -10,16 +10,6 @@ Parameters:
     AllowedPattern: "^[a-z][a-z0-9-]{0,48}[a-z0-9]$"
     Description: Enter the name of your application with no spaces.
 
-  SourceBucketName:
-    Type: String
-    Description: Vaultdb Artifact store.
-
-  AdminEmail:
-    Description: VaultDB Admin Email for default database user notifications
-    Type: String
-    AllowedPattern: '[^@]+@[^@]+\.[^@]+'
-    Default: support@vaultdb.ai
-
 Resources:
   MergeDataFunction:
     Type: AWS::Lambda::Function
@@ -114,9 +104,8 @@ Resources:
 
   MergeDataWhenPushedEvent:
     Type: AWS::S3::Bucket
-    Properties:
-      Bucket: 
-        Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
+    Properties:      
+      BucketName: !Sub "${ApplicationName}-PublicBucket"
       NotificationConfiguration:
         LambdaConfigurations:
           - Event: s3:ObjectCreated:*
@@ -124,8 +113,18 @@ Resources:
             Filter:
               S3Key:
                 Rules:
-                  - prefix: merge_queue/
-                  - suffix: 'load.sql'
+                  - Name: prefix
+                    Value: merge_queue/
+                  - Name: suffix
+                    Value: load.sql
+
+  S3InvokeLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref MergeDataFunction
+      Principal: s3.amazonaws.com
+      SourceArn: !Sub arn:aws:s3:::${ApplicationName}-PublicBucket
 
   ScheduleMergedRule:
     Type: AWS::Events::Rule
