@@ -37,6 +37,8 @@ jobs:
         run: |
           mkdir -p dist
           cp ./*.yaml ./dist/
+          cp ./*.html ./dist/
+          cp ./*.json ./dist/
 
       - uses: shallwefootball/s3-upload-action@master
         name: Upload S3
