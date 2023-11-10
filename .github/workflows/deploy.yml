@@ -40,6 +40,17 @@ jobs:
           cp ./*.html ./dist/
           cp ./*.json ./dist/
 
+      - uses: vitorsgomes/s3-rm-action@master
+        name: cleanup s3 folder awsquickstart
+        with:
+          args: --recursive
+        env:
+          AWS_S3_BUCKET: ${{ secrets.AWS_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.S3_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.S3_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          PATH_TO_DELETE: 'awsquickstart'
+
       - uses: shallwefootball/s3-upload-action@master
         name: Upload S3
         id: S3
