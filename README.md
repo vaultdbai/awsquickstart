@@ -20,7 +20,7 @@ awsv2 cloudformation create-stack --stack-name vaultdb-service-role --template-b
 #### Use File from s3
 
 ```
-awsv2 cloudformation create-stack --stack-name vaultdb-service-role --template-body https://vaultdb-web.s3.us-east-2.amazonaws.com/awsquickstart/awsquickstart/service-role.yaml --capabilities CAPABILITY_NAMED_IAM
+awsv2 cloudformation create-stack --stack-name vaultdb-service-role --template-body https://vaultdb-web.s3.us-east-2.amazonaws.com/awsquickstart/service-role.yaml --capabilities CAPABILITY_NAMED_IAM
 ```
 #### Update Service Role
 
@@ -30,7 +30,7 @@ awsv2 cloudformation update-stack --stack-name vaultdb-service-role --template-b
 #### Use File from s3
 
 ```
-awsv2 cloudformation update-stack --stack-name vaultdb-service-role --template-body https://vaultdb-web.s3.us-east-2.amazonaws.com/awsquickstart/awsquickstart/service-role.yaml --capabilities CAPABILITY_NAMED_IAM
+awsv2 cloudformation update-stack --stack-name vaultdb-service-role --template-body https://vaultdb-web.s3.us-east-2.amazonaws.com/awsquickstart/service-role.yaml --capabilities CAPABILITY_NAMED_IAM
 ```
 ## Deploy VaultDB Instance
 
