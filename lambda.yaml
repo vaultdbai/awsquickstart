@@ -119,6 +119,8 @@ Resources:
           aws_region: !Sub "${AWS::Region}"
           AWS_STS_REGIONAL_ENDPOINTS: "regional"
           commitlog_directory: "/mnt/commitlog"
+          public_bucket:
+            Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
           data_store:
             Fn::ImportValue: !Sub "${ApplicationName}-DataBucket"
           user_pool_client_id:
@@ -139,7 +141,7 @@ Resources:
           import json
           import glob
           from json import JSONEncoder
-          import vaultdb
+          import duckdb
 
           keys = None
 
@@ -160,6 +162,7 @@ Resources:
           application_name = os.environ['application_name'] if "application_name" in os.environ else ""
           aws_region = os.environ['aws_region'] if "aws_region" in os.environ else "us-east-1"
           commitlog_directory = os.environ['commitlog_directory'] if "commitlog_directory" in os.environ else "/tmp"
+          public_bucket = os.environ['public_bucket'] if "public_bucket" in os.environ else None
           data_store = os.environ['data_store'] if "data_store" in os.environ else None
           app_client_id = os.environ['user_pool_client_id'] if "user_pool_client_id" in os.environ else None
 
@@ -176,9 +179,11 @@ Resources:
                   if preferred_role.endswith('-AdminRole'):
                       preferred_role = preferred_role[:-10]
                   logger.info(f'role: {preferred_role}')
+
                   if 'RequestType' in event and event['RequestType'] == 'fetch-catalogues':
-                    catalogues = glob.glob(f"{commitlog_directory}/*.db")
-                    return {"result":"Success", "data":catalogues}
+                      catalogues = glob.glob(f"{commitlog_directory}/*.db")
+                      return {"result":"Success", "data":catalogues}
+                  
                   repo = event['database']
                   logger.info(f'repo: {repo}')
                   catalog = event['catalog']
@@ -186,7 +191,9 @@ Resources:
                   payload = event['payload']
                   logger.info(f'payload: {payload}')
 
-                  connection = vaultdb.connect(f"{commitlog_directory}/{catalog}.db", False, preferred_role, config={'allow_unsigned_extensions' : 'true'})
+                  connection = duckdb.connect(f"{commitlog_directory}/{catalog}.db", False, preferred_role, config={'allow_unsigned_extensions' : 'true'})
+                  connection.execute(f"CREATE CONFIG REMOTE {data_store};")
+                  connection.execute(f"CREATE CONFIG REMOTE_MERGE_PATH {public_bucket};")
                   df = connection.execute(payload).fetchdf()
                   return {"result":"Success", "data":df.to_json(orient="index")}
               except Exception as ex:
@@ -194,11 +201,13 @@ Resources:
                   return {"result":"Error", "message":str(ex)}
 
           def create_sample_database():
-              test_db_path = f"{commitlog_directory}/test.db"
+              test_db_path = f"{commitlog_directory}/{application_name}.db"
               if os.path.isfile(test_db_path):
-                return
-              connection = vaultdb.connect(test_db_path, False, "vaultdb")
+                  return
+              connection = duckdb.connect(test_db_path, False, "vaultdb")
               connection.execute('BEGIN TRANSACTION;')
+              connection.execute(f"CREATE CONFIG REMOTE {data_store};")
+              connection.execute(f"CREATE CONFIG REMOTE_MERGE_PATH {public_bucket};")
               connection.execute('CREATE TABLE tbl_ProductSales (ColID int, Product_Category  varchar(64), Product_Name  varchar(64), TotalSales int)')
               connection.execute('CREATE TABLE another_T (col1 INT, col2 INT, col3 INT, col4 INT, col5 INT, col6 INT, col7 INT, col8 INT)')
               connection.execute("INSERT INTO tbl_ProductSales VALUES (1,'Game','Mobo Game',200),(2,'Game','PKO Game',400),(3,'Fashion','Shirt',500),(4,'Fashion','Shorts',100);")
@@ -206,7 +215,7 @@ Resources:
               connection.execute('COMMIT;')
 
           create_sample_database() # Create Default Database for sample
-                    
+                  
           def verify_token(token, key_store, app_client_id):
               import time
               from jose import jwk, jwt

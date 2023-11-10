@@ -35,6 +35,8 @@ Resources:
           aws_region: !Sub "${AWS::Region}"
           AWS_STS_REGIONAL_ENDPOINTS: "regional"
           commitlog_directory: "/mnt/commitlog"
+          public_bucket:
+            Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
           data_store:
             Fn::ImportValue: !Sub "${ApplicationName}-DataBucket"
           user_pool_id:
@@ -67,6 +69,7 @@ Resources:
           application_name = os.environ['application_name'] if "application_name" in os.environ else ""
           aws_region = os.environ['aws_region'] if "aws_region" in os.environ else "us-east-1"
           commitlog_directory = os.environ['commitlog_directory'] if "commitlog_directory" in os.environ else "/tmp"
+          public_bucket = os.environ['public_bucket'] if "public_bucket" in os.environ else None
           data_store = os.environ['data_store'] if "data_store" in os.environ else None
           app_client_id = os.environ['user_pool_client_id'] if "user_pool_client_id" in os.environ else None
 
@@ -89,6 +92,7 @@ Resources:
                       file_content = response['Body'].iter_lines()
                       # connect to database
                       connection = duckdb.connect(f"{commitlog_directory}/{database_name}.db", False, preferred_role, config={'allow_unsigned_extensions' : 'true'})
+                      connection.execute(f"PRAGMA disable_data_inheritance;")
                       # Process each line of the file
                       for line in file_content:
                           stmt = line.trim()
@@ -96,6 +100,11 @@ Resources:
                               logger.info(f'Executing Statement: {line}')
                               stmt_result = connection.execute(stmt)
                               logger.info(f'Statement Result: {stmt_result}')
+                      
+                      connection.execute(f"CREATE CONFIG REMOTE {data_store};")
+                      connection.execute(f"CREATE CONFIG REMOTE_MERGE_PATH {public_bucket};")
+                      connection.execute(f"PRAGMA enable_data_inheritance;")
+                      connection.execute(f'MERGE DATABASE {database_name};')
 
                   return {"result":"Success"}
               except Exception as ex:
