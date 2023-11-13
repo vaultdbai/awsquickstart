@@ -1,4 +1,9 @@
-# VaultDB Modeling platform
+<div align="center">
+  <img src="https://www.vaultdb.ai/img/v-logo.png" height="120">
+</div>
+<br>
+
+# VaultDB Data Platform
 
 This repository contains the VaultDB ai platform aws quickstart templates.
 
@@ -10,7 +15,7 @@ This repository contains the VaultDB ai platform aws quickstart templates.
 
 ## Create Service Role
 
-#### [![Launch stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=vaultdb-service-role&templateURL=https://vaultdb-web.s3.us-east-2.amazonaws.com/awsquickstart/service-role.yaml){:target="_blank"}
+#### [![Launch stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=vaultdb-service-role&templateURL=https://vaultdb-web.s3.us-east-2.amazonaws.com/awsquickstart/service-role.yaml)
 
 ### AWS CLI Command to Create Cloud Formation Service Role
 
@@ -36,7 +41,7 @@ awsv2 cloudformation update-stack --stack-name vaultdb-service-role --template-b
 
 ### Note: Make sure to pick the vaultdb_cloudformation_service_role
 
-### [![Launch stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=dev-test-prod&templateURL=https://vaultdb-web.s3.us-east-2.amazonaws.com/awsquickstart/vaultdb.yaml){:target="_blank"}
+### [![Launch stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=dev-test-prod&templateURL=https://vaultdb-web.s3.us-east-2.amazonaws.com/awsquickstart/vaultdb.yaml)
 
 ### AWS CLI Command to Create VaultDB Instance
 ```
