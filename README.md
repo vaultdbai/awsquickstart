@@ -1,9 +1,9 @@
 <div align="center">
-  <img src="http://vaultdb.ai/img/v-logo.png" height="120">
+  <img src="https://www.vaultdb.ai/img/v-logo.png" height="120">
 </div>
 <br>
 
-# VaultDB HUB IOT Data Platform
+# VaultDB Data Platform
 
 This repository contains the VaultDB ai platform aws quickstart templates.
 
