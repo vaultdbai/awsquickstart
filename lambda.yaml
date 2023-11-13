@@ -96,10 +96,10 @@ Resources:
           Fn::ImportValue: !Sub "${ApplicationName}-DataBucket"
         S3Key: "release/vaultdb-package.zip"
 
-  PyArrowDBPythonLayer:
+  DependenciesPythonLayer:
     Type: "AWS::Lambda::LayerVersion"
     Properties:
-      LayerName: !Join ["", [!Ref ApplicationName, "-python-pyarrow-linux-layer"]]
+      LayerName: !Join ["", [!Ref ApplicationName, "-python-dependencies-linux-layer"]]
       CompatibleRuntimes:
         - python3.8
       CompatibleArchitectures:
@@ -107,7 +107,7 @@ Resources:
       Content:
         S3Bucket:
           Fn::ImportValue: !Sub "${ApplicationName}-DataBucket"
-        S3Key: "release/pyarrow-package.zip"
+        S3Key: "release/dependencies-package.zip"
 
   ExecuteQueryFunction:
     Type: AWS::Lambda::Function
@@ -123,7 +123,7 @@ Resources:
       Timeout: 240
       Layers:
         - !Ref VaultDBPythonLayer
-        - !Ref PyArrowDBPythonLayer
+        - !Ref DependenciesPythonLayer
       Runtime: python3.8
       Architectures:
         - x86_64
@@ -285,11 +285,11 @@ Outputs:
     Value: !Ref VaultDBPythonLayer
     Export:
       Name: !Sub ${ApplicationName}-VaultDBPythonLayer
-  PyArrowDBPythonLayer:
-    Description: Pyarrow Python Layer
-    Value: !Ref PyArrowDBPythonLayer
+  DependenciesPythonLayer:
+    Description: Dependencies Python Layer
+    Value: !Ref DependenciesPythonLayer
     Export:
-      Name: !Sub ${ApplicationName}-PyArrowDBPythonLayer
+      Name: !Sub ${ApplicationName}-DependenciesPythonLayer
       
   CLI:
     Description: Use this command to invoke the Lambda function
