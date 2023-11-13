@@ -116,6 +116,7 @@ Resources:
                   - elasticfilesystem:DescribeAccessPoints
                   - elasticfilesystem:PutBackupPolicy
                   - elasticfilesystem:DescribeMountTargetSecurityGroups
+                  - elasticfilesystem:TagResource
                 Resource: "*"
               - Effect: Allow
                 Action:
@@ -136,6 +137,7 @@ Resources:
                   - cognito-idp:AdminCreateUser
                   - cognito-idp:AdminSetUserPassword
                   - cognito-idp:AdminAddUserToGroup
+                  - cognito-idp:AdminListGroupsForUser
                   - cognito-identity:CreateIdentityPool
                   - cognito-identity:DeleteIdentityPool
                   - cognito-identity:DescribeIdentityPool
@@ -174,7 +176,9 @@ Resources:
                 Action:
                   - s3:CreateBucket
                   - s3:GetBucketPolicy
+                  - s3:GetBucketCors
                   - s3:DeleteBucket
+                  - s3:DeleteBucketCors
                   - s3:DeleteBucketPolicy
                   - s3:PutEncryptionConfiguration
                   - s3:GetEncryptionConfiguration
@@ -185,6 +189,7 @@ Resources:
                   - s3:CreateAccessPoint
                   - s3:PutBucketLogging
                   - s3:PutBucketPolicy
+                  - s3:PutBucketCors
                   - S3:PutBucketWebsite
                   - s3:PutBucketTagging
                   - s3:PutLifecycleConfiguration

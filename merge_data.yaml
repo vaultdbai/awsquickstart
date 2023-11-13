@@ -26,6 +26,7 @@ Resources:
       Timeout: 60
       Layers:
         - Fn::ImportValue: !Sub "${ApplicationName}-VaultDBPythonLayer"
+        - Fn::ImportValue: !Sub "${ApplicationName}-PyArrowDBPythonLayer"
       Runtime: python3.8
       Architectures:
         - x86_64
