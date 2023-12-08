@@ -9,9 +9,7 @@ This repository contains the VaultDB ai platform aws quickstart templates.
 
 ## TODO:
 
-### 1) Add Push with or without event functionality right away
-
-### 2) Provide Update Button on Website to update and deploy lambda to kick off update to Stack
+### 1) Provide Update Button on Website to update and deploy lambda to kick off update to Stack
 
 ## Create Service Role
 

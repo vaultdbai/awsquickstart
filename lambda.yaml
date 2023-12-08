@@ -68,7 +68,7 @@ Resources:
                   - ec2:AttachNetworkInterface
                 Resource: "*"
 
-  AccessPointResource:
+  EFSAccessPointResource:
     Type: AWS::EFS::AccessPoint
     Properties:
       FileSystemId:
@@ -145,7 +145,7 @@ Resources:
         SubnetIds:
           - Fn::ImportValue: !Sub "${ApplicationName}-VPCPrivateSubnet"
       FileSystemConfigs:
-        - Arn: !GetAtt AccessPointResource.Arn
+        - Arn: !GetAtt EFSAccessPointResource.Arn
           LocalMountPath: /mnt/commitlog
       Code:
         ZipFile: |
@@ -272,7 +272,7 @@ Resources:
 Outputs:
   ExecuteRole:
     Description: VaultDB Execution Role that works on behalf of user
-    Value: !Ref ExecuteRole
+    Value: !GetAtt ExecuteRole.Arn
     Export:
       Name: !Sub ${ApplicationName}-ExecuteRole
   ExecuteQueryFunction:
@@ -290,7 +290,12 @@ Outputs:
     Value: !Ref DependenciesPythonLayer
     Export:
       Name: !Sub ${ApplicationName}-DependenciesPythonLayer
-      
+  EFSAccessPointResource:
+    Description: EFS Access Point Resource
+    Value: !GetAtt EFSAccessPointResource.Arn
+    Export:
+      Name: !Sub ${ApplicationName}-EFSAccessPointResource
+            
   CLI:
     Description: Use this command to invoke the Lambda function
     Value: !Sub |
