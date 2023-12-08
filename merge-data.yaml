@@ -20,7 +20,7 @@ Resources:
       Description: Merge Data into VaultDB Hub
       FunctionName: !Join ["", [!Ref ApplicationName, "-merge-data"]]
       Handler: index.lambda_handler
-      Role: 
+      Role:
         Fn::ImportValue: !Sub "${ApplicationName}-ExecuteRole"
       MemorySize: 128
       Timeout: 60
@@ -52,7 +52,8 @@ Resources:
         SubnetIds:
           - Fn::ImportValue: !Sub "${ApplicationName}-VPCPrivateSubnet"
       FileSystemConfigs:
-        - Arn: !GetAtt AccessPointResource.Arn
+        - Arn:
+            Fn::ImportValue: !Sub "${ApplicationName}-EFSAccessPointResource"
           LocalMountPath: /mnt/commitlog
       Code:
         ZipFile: |
@@ -115,11 +116,12 @@ Resources:
   MergeDataWhenPushedEvent:
     Type: AWS::S3::Bucket
     Properties:      
-      BucketName: !Sub "${ApplicationName}-PublicBucket"
+      BucketName:
+        Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
       NotificationConfiguration:
         LambdaConfigurations:
           - Event: s3:ObjectCreated:*
-            Function: MergeDataFunction
+            Function: !Ref MergeDataFunction
             Filter:
               S3Key:
                 Rules:

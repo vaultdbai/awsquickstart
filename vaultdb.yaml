@@ -135,6 +135,6 @@ Resources:
         - ""
         - - "https://s3.us-east-2.amazonaws.com/"
           - !Ref BucketName
-          - "/awsquickstart/merge_data.yaml"
+          - "/awsquickstart/merge-data.yaml"
       Parameters:
         ApplicationName: !Ref AWS::StackName
