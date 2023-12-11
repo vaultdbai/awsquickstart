@@ -114,22 +114,6 @@ Resources:
                   logger.error(ex)
                   cfnresponse.send(event, context, cfnresponse.FAILED, {'error':str(e)}, "CustomResourcePhysicalID")
 
-  MergeDataWhenPushedEvent:
-    Type: AWS::S3::Bucket
-    Properties:      
-      BucketName: !Sub "${ApplicationName}-PublicBucket"
-      NotificationConfiguration:
-        LambdaConfigurations:
-          - Event: s3:ObjectCreated:*
-            Function: !Ref MergeDataFunction
-            Filter:
-              S3Key:
-                Rules:
-                  - Name: prefix
-                    Value: merge_queue/
-                  - Name: suffix
-                    Value: load.sql
-
   S3InvokeLambdaPermission:
     Type: AWS::Lambda::Permission
     Properties:
@@ -156,6 +140,19 @@ Resources:
       Action: "lambda:InvokeFunction"
       Principal: "events.amazonaws.com"
       SourceArn: !GetAtt MergeDataFunction.Arn
+
+  MergeDataWhenPushedEventTrigger:
+    Type: 'Custom::LambdaTrigger'
+    DependsOn: 
+      - S3InvokeLambdaPermission
+      - ScheduleMergedRule
+      - PermissionForEventsToInvokeMergeLambda
+    Properties:
+      ServiceToken: 
+        Fn::ImportValue: !Sub "${ApplicationName}-DeploymentUtilFunction-arn"
+      LambdaArn: !GetAtt MergeDataFunction.Arn
+      Bucket: 
+        Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
 
 Outputs:
   MergeDataFunction:

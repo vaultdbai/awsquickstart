@@ -196,6 +196,8 @@ Resources:
                   - s3:ListMultipartUploadParts
                   - s3:*Object
                   - s3:ListBucket
+                  - s3:GetBucketNotification
+                  - s3:PutBucketNotification
                 Resource: "*"
               - Effect: Allow
                 Action:
