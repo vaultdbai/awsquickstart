@@ -88,26 +88,13 @@ Resources:
     Properties:
       LayerName: !Join ["", [!Ref ApplicationName, "-python-vaultdb-linux-layer"]]
       CompatibleRuntimes:
-        - python3.8
+        - python3.9
       CompatibleArchitectures:
         - x86_64
       Content:
         S3Bucket:
           Fn::ImportValue: !Sub "${ApplicationName}-DataBucket"
-        S3Key: "release/vaultdb-package.zip"
-
-  DependenciesPythonLayer:
-    Type: "AWS::Lambda::LayerVersion"
-    Properties:
-      LayerName: !Join ["", [!Ref ApplicationName, "-python-dependencies-linux-layer"]]
-      CompatibleRuntimes:
-        - python3.8
-      CompatibleArchitectures:
-        - x86_64
-      Content:
-        S3Bucket:
-          Fn::ImportValue: !Sub "${ApplicationName}-DataBucket"
-        S3Key: "release/dependencies-package.zip"
+        S3Key: "release/vaultdb39_layer.zip"
 
   ExecuteQueryFunction:
     Type: AWS::Lambda::Function
@@ -123,8 +110,7 @@ Resources:
       Timeout: 240
       Layers:
         - !Ref VaultDBPythonLayer
-        - !Ref DependenciesPythonLayer
-      Runtime: python3.8
+      Runtime: python3.9
       Architectures:
         - x86_64
       Environment:
@@ -285,11 +271,6 @@ Outputs:
     Value: !Ref VaultDBPythonLayer
     Export:
       Name: !Sub ${ApplicationName}-VaultDBPythonLayer
-  DependenciesPythonLayer:
-    Description: Dependencies Python Layer
-    Value: !Ref DependenciesPythonLayer
-    Export:
-      Name: !Sub ${ApplicationName}-DependenciesPythonLayer
   EFSAccessPointResource:
     Description: EFS Access Point Resource
     Value: !GetAtt EFSAccessPointResource.Arn
