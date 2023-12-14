@@ -126,6 +126,11 @@ Outputs:
     Value: !Ref DataBucket
     Export:
       Name: !Sub ${ApplicationName}-DataBucket
+  PublicBucketArn:
+    Description: Name of the public bucket
+    Value: !GetAtt PublicBucket.Arn
+    Export:
+      Name: !Sub ${ApplicationName}-PublicBucket-arn
   PublicBucket:
     Description: Name of the public bucket
     Value: !Ref PublicBucket

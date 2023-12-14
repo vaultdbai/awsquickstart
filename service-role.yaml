@@ -196,6 +196,8 @@ Resources:
                   - s3:ListMultipartUploadParts
                   - s3:*Object
                   - s3:ListBucket
+                  - s3:GetBucketNotification
+                  - s3:PutBucketNotification
                 Resource: "*"
               - Effect: Allow
                 Action:
@@ -204,7 +206,7 @@ Resources:
                 Resource: "*"
                 Condition:
                   StringEquals:
-                    "s3:ResourceTag/Purpose": "VaultDB"
+                    "s3:ResourceTag/Project": "VaultDB"
               - Effect: Allow
                 Action:
                   - events:DescribeRule
@@ -247,7 +249,7 @@ Resources:
                 Resource: "arn:aws:iam::*"
                 Condition:
                   StringEquals:
-                    "iam:ResourceTag/Purpose": "VaultDB"
+                    "iam:ResourceTag/Project": "VaultDB"
               - Effect: Allow
                 Action:
                   - ec2:DeleteInternetGateway
@@ -255,14 +257,14 @@ Resources:
                 Resource: "arn:aws:ec2:*:*:internet-gateway/*"
                 Condition:
                   StringEquals:
-                    "ec2:ResourceTag/Purpose": "VaultDB"
+                    "ec2:ResourceTag/Project": "VaultDB"
               - Effect: Allow
                 Action:
                   - ec2:DeleteSubnet
                 Resource: "arn:aws:ec2:*:*:subnet/*"
                 Condition:
                   StringEquals:
-                    "ec2:ResourceTag/Purpose": "VaultDB"
+                    "ec2:ResourceTag/Project": "VaultDB"
               - Effect: Allow
                 Action:
                   - ec2:DeleteRouteTable
@@ -271,7 +273,7 @@ Resources:
                 Resource: "arn:aws:ec2:*:*:route-table/*"
                 Condition:
                   StringEquals:
-                    "ec2:ResourceTag/Purpose": "VaultDB"
+                    "ec2:ResourceTag/Project": "VaultDB"
 Outputs:
   ServiceRoleARN:
     Description: VaultDB cloudformation service role

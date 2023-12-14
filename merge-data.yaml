@@ -59,6 +59,7 @@ Resources:
         ZipFile: |
           # Imports
           import os
+          import cfnresponse
           import logging
           import json
           import duckdb
@@ -108,35 +109,19 @@ Resources:
                       connection.execute(f"PRAGMA enable_data_inheritance;")
                       connection.execute(f'MERGE DATABASE {database_name};')
 
-                  return {"result":"Success"}
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {'result':'success'}, "CustomResourcePhysicalID")
               except Exception as ex:
                   logger.error(ex)
-                  return {"result":"Error", "message":str(ex)}
-
-  MergeDataWhenPushedEvent:
-    Type: AWS::S3::Bucket
-    Properties:      
-      BucketName:
-        Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
-      NotificationConfiguration:
-        LambdaConfigurations:
-          - Event: s3:ObjectCreated:*
-            Function: !Ref MergeDataFunction
-            Filter:
-              S3Key:
-                Rules:
-                  - Name: prefix
-                    Value: merge_queue/
-                  - Name: suffix
-                    Value: load.sql
+                  cfnresponse.send(event, context, cfnresponse.FAILED, {'error':str(e)}, "CustomResourcePhysicalID")
 
   S3InvokeLambdaPermission:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref MergeDataFunction
+      FunctionName: !GetAtt MergeDataFunction.Arn
       Principal: s3.amazonaws.com
-      SourceArn: !Sub arn:aws:s3:::${ApplicationName}-PublicBucket
+      SourceArn: 
+        Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket-arn"
 
   ScheduleMergedRule:
     Type: AWS::Events::Rule
@@ -157,11 +142,16 @@ Resources:
       Principal: "events.amazonaws.com"
       SourceArn: !GetAtt MergeDataFunction.Arn
 
-  MergeInvoke:
-    Type: AWS::CloudFormation::CustomResource
-    DependsOn: MergeDataFunction
+  InvokeDeploymentToConfigureTriggersAndUsers:
+    Type: 'Custom::LambdaTrigger'
+    DependsOn: 
+      - S3InvokeLambdaPermission
+      - ScheduleMergedRule
+      - PermissionForEventsToInvokeMergeLambda
     Properties:
-      ServiceToken: !GetAtt MergeDataFunction.Arn
+      ServiceToken: 
+        Fn::ImportValue: !Sub "${ApplicationName}-DeploymentUtilFunction-arn"
+      LambdaArn: !GetAtt MergeDataFunction.Arn
 
 Outputs:
   MergeDataFunction:
