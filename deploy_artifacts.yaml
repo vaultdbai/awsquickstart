@@ -291,6 +291,12 @@ Resources:
       Principal: "events.amazonaws.com"
       SourceArn: !GetAtt DeploymentUtilFunction.Arn
 
+  DeployInvoke:
+    Type: AWS::CloudFormation::CustomResource
+    DependsOn: DeploymentUtilFunction
+    Properties:
+      ServiceToken: !GetAtt DeploymentUtilFunction.Arn
+
 Outputs:
   DeploymentUtilFunction:
     Description: VaultDB Deployment Util Function
