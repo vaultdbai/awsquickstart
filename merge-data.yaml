@@ -118,9 +118,10 @@ Resources:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
-      FunctionName: !Ref MergeDataFunction
+      FunctionName: !GetAtt MergeDataFunction.Arn
       Principal: s3.amazonaws.com
-      SourceArn: !Sub arn:aws:s3:::${ApplicationName}-PublicBucket
+      SourceArn: 
+        Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket-arn"
 
   ScheduleMergedRule:
     Type: AWS::Events::Rule
@@ -141,7 +142,7 @@ Resources:
       Principal: "events.amazonaws.com"
       SourceArn: !GetAtt MergeDataFunction.Arn
 
-  MergeDataWhenPushedEventTrigger:
+  InvokeDeploymentToConfigureTriggersAndUsers:
     Type: 'Custom::LambdaTrigger'
     DependsOn: 
       - S3InvokeLambdaPermission
@@ -151,8 +152,6 @@ Resources:
       ServiceToken: 
         Fn::ImportValue: !Sub "${ApplicationName}-DeploymentUtilFunction-arn"
       LambdaArn: !GetAtt MergeDataFunction.Arn
-      Bucket: 
-        Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
 
 Outputs:
   MergeDataFunction:
