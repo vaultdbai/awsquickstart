@@ -31,7 +31,7 @@ Resources:
       FunctionName: !Join ["", [!Ref ApplicationName, "-deployment-util"]]
       Handler: index.lambda_handler
       MemorySize: 128
-      Runtime: python3.8
+      Runtime: python3.12
       Role:
         Fn::ImportValue: "vaultdb-cloudformation-service-role-Arn"
       Timeout: 60
