@@ -34,7 +34,7 @@ Resources:
       Runtime: python3.12
       Role:
         Fn::ImportValue: "vaultdb-cloudformation-service-role-Arn"
-      Timeout: 60
+      Timeout: 240
       Environment:
         Variables:
           application_name: !Sub "${ApplicationName}"
@@ -54,6 +54,15 @@ Resources:
             Fn::ImportValue: !Sub "${ApplicationName}-DataBucket"
           cloudformation_service_role_Arn:
             Fn::ImportValue: "vaultdb-cloudformation-service-role-Arn"
+      VpcConfig:
+        SecurityGroupIds:
+          - Fn::ImportValue: !Sub "${ApplicationName}-DataSecurityGroup"
+        SubnetIds:
+          - Fn::ImportValue: !Sub "${ApplicationName}-VPCPrivateSubnet"
+      FileSystemConfigs:
+        - Arn: 
+            Fn::ImportValue: !Sub "${ApplicationName}-EFSAccessPointResource"
+          LocalMountPath: /mnt/commitlog
       Code:
         ZipFile: |
             import boto3
@@ -123,6 +132,7 @@ Resources:
 
             def create_public_keys(data_bucket):
                 import urllib.request
+                import json
 
                 logger.info("Creating JWT Public Keys Json!")
                 keys_url = "https://cognito-idp.{}.amazonaws.com/{}/.well-known/jwks.json".format(
@@ -130,8 +140,10 @@ Resources:
                 )
                 with urllib.request.urlopen(keys_url) as f:
                     response = f.read()
-                keysobject = s3.Object(bucket_name=data_bucket, key="jwks.json")
-                keysobject.put(Body=response.decode("utf-8"))
+
+                with open('/mnt/commitlog/jwks.json', 'w') as f:
+                    json.dump(response.decode("utf-8"), f)
+
                 logger.info("Created JWT Public Keys!")
 
 
