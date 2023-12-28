@@ -85,33 +85,47 @@ Resources:
 
                   for record in event['Records']:
                       source_bucket = record['s3']['bucket']['name']
+                      logger.info(f'source_bucket: {source_bucket}')
                       file_key = record['s3']['object']['key']
+                      logger.info(f'file_key: {file_key}')
                       preferred_role = file_key.split('/')[1]    
-                      database_name = file_key.split('/')[1]    
+                      logger.info(f'preferred_role: {preferred_role}')
+                      database_name = file_key.split('/')[1]
+                      logger.info(f'database_name: {database_name}')
+                      db_path = f"{commitlog_directory}/{database_name}.db"
+
+                      if not os.path.isfile(db_path):
+                          cfnresponse.send(event, context, cfnresponse.FAILED, {'error':f"Catalog {database_name} does not exist!"}, "CustomResourcePhysicalID")
+                          
                       # Retrieve the object from S3
                       response = s3_client.get_object(Bucket=source_bucket, Key=file_key)            
                       # Read the file content line by line
                       file_content = response['Body'].iter_lines()
+                      if not file_content:
+                          cfnresponse.send(event, context, cfnresponse.FAILED, {'error':"empty file contents!"}, "CustomResourcePhysicalID")
+
                       # connect to database
-                      connection = duckdb.connect(f"{commitlog_directory}/{database_name}.db", False, preferred_role, config={'allow_unsigned_extensions' : 'true'})
+                      connection = duckdb.connect(db_path, False, preferred_role, config={'autoinstall_known_extensions' : 'true'})
                       connection.execute(f"PRAGMA disable_data_inheritance;")
                       # Process each line of the file
+                      counter = 0
                       for line in file_content:
                           stmt = line.trim()
                           if stmt:
                               logger.info(f'Executing Statement: {line}')
                               stmt_result = connection.execute(stmt)
-                              logger.info(f'Statement Result: {stmt_result}')
-                      
-                      connection.execute(f"CREATE CONFIG REMOTE {data_store};")
-                      connection.execute(f"CREATE CONFIG REMOTE_MERGE_PATH {public_bucket};")
-                      connection.execute(f"PRAGMA enable_data_inheritance;")
-                      connection.execute(f'MERGE DATABASE {database_name};')
+                              counter+=1
+                              logger.info(f'Statement Result: {stmt_result.fetchdf()}')
+
+                      if counter:
+                          connection.execute(f"PRAGMA enable_data_inheritance;")
+                          stmt_result = connection.execute(f"MERGE DATABASE {database_name};")
+                          logger.info(f'Statement Result: {stmt_result.fetchdf()}')
 
                   cfnresponse.send(event, context, cfnresponse.SUCCESS, {'result':'success'}, "CustomResourcePhysicalID")
               except Exception as ex:
                   logger.error(ex)
-                  cfnresponse.send(event, context, cfnresponse.FAILED, {'error':str(e)}, "CustomResourcePhysicalID")
+                  cfnresponse.send(event, context, cfnresponse.FAILED, {'error':str(ex)}, "CustomResourcePhysicalID")
 
   S3InvokeLambdaPermission:
     Type: AWS::Lambda::Permission

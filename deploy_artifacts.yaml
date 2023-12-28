@@ -54,15 +54,6 @@ Resources:
             Fn::ImportValue: !Sub "${ApplicationName}-DataBucket"
           cloudformation_service_role_Arn:
             Fn::ImportValue: "vaultdb-cloudformation-service-role-Arn"
-      VpcConfig:
-        SecurityGroupIds:
-          - Fn::ImportValue: !Sub "${ApplicationName}-DataSecurityGroup"
-        SubnetIds:
-          - Fn::ImportValue: !Sub "${ApplicationName}-VPCPrivateSubnet"
-      FileSystemConfigs:
-        - Arn: 
-            Fn::ImportValue: !Sub "${ApplicationName}-EFSAccessPointResource"
-          LocalMountPath: /mnt/commitlog
       Code:
         ZipFile: |
             import boto3
@@ -132,7 +123,6 @@ Resources:
 
             def create_public_keys(data_bucket):
                 import urllib.request
-                import json
 
                 logger.info("Creating JWT Public Keys Json!")
                 keys_url = "https://cognito-idp.{}.amazonaws.com/{}/.well-known/jwks.json".format(
@@ -140,10 +130,8 @@ Resources:
                 )
                 with urllib.request.urlopen(keys_url) as f:
                     response = f.read()
-
-                with open('/mnt/commitlog/jwks.json', 'w') as f:
-                    json.dump(response.decode("utf-8"), f)
-
+                keysobject = s3.Object(bucket_name=data_bucket, key="jwks.json")
+                keysobject.put(Body=response.decode("utf-8"))
                 logger.info("Created JWT Public Keys!")
 
 

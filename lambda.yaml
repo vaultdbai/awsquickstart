@@ -129,12 +129,6 @@ Resources:
           from json import JSONEncoder
           import duckdb
 
-          def get_keys():
-              with open('/mnt/commitlog/jwks.json', 'w') as f:
-                  data = json.load(f)
-              local_keys = data['keys']
-              return local_keys
-
           # Set up the logger
           logger = logging.getLogger()
           logger.setLevel(logging.DEBUG) # Very verbose
@@ -146,7 +140,26 @@ Resources:
           data_store = os.environ['data_store'] if "data_store" in os.environ else None
           app_client_id = os.environ['user_pool_client_id'] if "user_pool_client_id" in os.environ else None
 
+          def get_keys():
+              cachepath = '/tmp/jwks.json'
+              if os.path.isfile(cachepath):
+                  with open(cachepath) as f:
+                      data = json.load(f)
+                  local_keys = data['keys']
+                  logger.info(f"keys: {local_keys}")
+                  return local_keys
+              
+              import boto3
+              s3 = boto3.resource('s3')
+              obj = s3.meta.client.get_object(Bucket=data_store, Key="jwks.json")
+              local_keys = json.loads(obj['Body'].read())
+              with open(cachepath, 'w') as f:
+                  json.dump(local_keys, f)
+              logger.info(f"keys: {local_keys}")
+              return local_keys['keys']
+
           keys = get_keys() # Download Public Keys for token verification ahead as we need them for security
+
           def lambda_handler(event, context):
               token = event['token']
               try:
@@ -160,9 +173,11 @@ Resources:
                   logger.info(f'role: {preferred_role}')
 
                   if 'RequestType' in event and event['RequestType'] == 'fetch-catalogues':
+                      if not os.path.isfile(f"{commitlog_directory}/{application_name}.db"):
+                          create_sample_database() # Create Default Database for sample
                       catalogues = glob.glob(f"{commitlog_directory}/*.db")
                       return {"result":"Success", "data":catalogues}
-
+              
                   repo = event['database']
                   logger.info(f'repo: {repo}')
                   catalog = event['catalog']
@@ -178,7 +193,7 @@ Resources:
                           return {"result":"Success", "data":df.to_json(orient="index")}
                       
                       return {"result":"Success", "data":{"result":"empty payload. please check your query."}}
-
+                  
                   elif 'RequestType' in event and event['RequestType'] == 'create-catalog':
                       catalogues = glob.glob(f"{commitlog_directory}/*.db")
                       connection = duckdb.connect(f"{commitlog_directory}/{catalog}.db", False)
@@ -206,8 +221,6 @@ Resources:
               connection.execute("INSERT INTO another_T VALUES (1,2,3,4,5,6,7,8), (11,22,33,44,55,66,77,88), (111,222,333,444,555,666,777,888), (1111,2222,3333,4444,5555,6666,7777,8888)")
               connection.execute('COMMIT;')
 
-          create_sample_database() # Create Default Database for sample
-                  
           def verify_token(token, app_client_id):
               import time
               from jose import jwk, jwt
@@ -218,7 +231,6 @@ Resources:
               # search for the kid in the downloaded public keys
               key_index = -1
               valid_keys = keys or get_keys()
-              logger.info(f"keys: {valid_keys}")
               for i in range(len(valid_keys)):
                   if kid == valid_keys[i]["kid"]:
                       key_index = i
