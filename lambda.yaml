@@ -68,21 +68,6 @@ Resources:
                   - ec2:AttachNetworkInterface
                 Resource: "*"
 
-  EFSAccessPointResource:
-    Type: AWS::EFS::AccessPoint
-    Properties:
-      FileSystemId:
-        Fn::ImportValue: !Sub "${ApplicationName}-EFSFileSystem"
-      PosixUser:
-        Uid: 1001
-        Gid: 1001
-      RootDirectory:
-        CreationInfo:
-          OwnerGid: 1001
-          OwnerUid: 1001
-          Permissions: 770
-        Path: /commitlog
-
   VaultDBPythonLayer:
     Type: "AWS::Lambda::LayerVersion"
     Properties:
@@ -131,7 +116,8 @@ Resources:
         SubnetIds:
           - Fn::ImportValue: !Sub "${ApplicationName}-VPCPrivateSubnet"
       FileSystemConfigs:
-        - Arn: !GetAtt EFSAccessPointResource.Arn
+        - Arn: 
+            Fn::ImportValue: !Sub "${ApplicationName}-EFSAccessPointResource"
           LocalMountPath: /mnt/commitlog
       Code:
         ZipFile: |
@@ -279,11 +265,6 @@ Outputs:
     Value: !Ref VaultDBPythonLayer
     Export:
       Name: !Sub ${ApplicationName}-VaultDBPythonLayer
-  EFSAccessPointResource:
-    Description: EFS Access Point Resource
-    Value: !GetAtt EFSAccessPointResource.Arn
-    Export:
-      Name: !Sub ${ApplicationName}-EFSAccessPointResource
             
   CLI:
     Description: Use this command to invoke the Lambda function

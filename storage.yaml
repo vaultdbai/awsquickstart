@@ -111,6 +111,20 @@ Resources:
         - Key: createdBy
           Value: vaultdb.ai
 
+  EFSAccessPointResource:
+    Type: AWS::EFS::AccessPoint
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      PosixUser:
+        Uid: 1001
+        Gid: 1001
+      RootDirectory:
+        CreationInfo:
+          OwnerGid: 1001
+          OwnerUid: 1001
+          Permissions: 770
+        Path: /commitlog
+
   EFSMountTarget:
     Type: AWS::EFS::MountTarget
     Properties:
@@ -151,3 +165,8 @@ Outputs:
     Value: !Ref EFSMountTarget
     Export:
       Name: !Sub ${ApplicationName}-EFSMountTarget
+  EFSAccessPointResource:
+    Description: EFS Access Point Resource
+    Value: !GetAtt EFSAccessPointResource.Arn
+    Export:
+      Name: !Sub ${ApplicationName}-EFSAccessPointResource
