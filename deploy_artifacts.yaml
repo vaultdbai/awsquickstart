@@ -40,7 +40,6 @@ Resources:
           application_name: !Sub "${ApplicationName}"
           admin_email: !Sub "${AdminEmail}"
           AWS_STS_REGIONAL_ENDPOINTS: "regional"
-          aws_region: !Sub "${AWS::Region}"
           user_pool_id:
             Fn::ImportValue: !Sub "${ApplicationName}-UserPool"
           user_pool_client_id:
@@ -54,15 +53,6 @@ Resources:
             Fn::ImportValue: !Sub "${ApplicationName}-DataBucket"
           cloudformation_service_role_Arn:
             Fn::ImportValue: "vaultdb-cloudformation-service-role-Arn"
-      VpcConfig:
-        SecurityGroupIds:
-          - Fn::ImportValue: !Sub "${ApplicationName}-DataSecurityGroup"
-        SubnetIds:
-          - Fn::ImportValue: !Sub "${ApplicationName}-VPCPrivateSubnet"
-      FileSystemConfigs:
-        - Arn: 
-            Fn::ImportValue: !Sub "${ApplicationName}-EFSAccessPointResource"
-          LocalMountPath: /mnt/commitlog
       Code:
         ZipFile: |
             import boto3
@@ -75,7 +65,6 @@ Resources:
             logger.setLevel(logging.INFO)
 
             s3 = boto3.resource("s3")
-            aws_region = os.environ["aws_region"]
             user_pool_id = os.environ["user_pool_id"]
             source_bucket = os.environ["source_bucket"]
             public_bucket = os.environ["public_bucket"]
@@ -132,18 +121,15 @@ Resources:
 
             def create_public_keys(data_bucket):
                 import urllib.request
-                import json
 
                 logger.info("Creating JWT Public Keys Json!")
                 keys_url = "https://cognito-idp.{}.amazonaws.com/{}/.well-known/jwks.json".format(
-                    aws_region, user_pool_id
+                    os.environ['AWS_REGION'], user_pool_id
                 )
                 with urllib.request.urlopen(keys_url) as f:
                     response = f.read()
-
-                with open('/mnt/commitlog/jwks.json', 'w') as f:
-                    json.dump(response.decode("utf-8"), f)
-
+                keysobject = s3.Object(bucket_name=data_bucket, key="jwks.json")
+                keysobject.put(Body=response.decode("utf-8"))
                 logger.info("Created JWT Public Keys!")
 
 
@@ -211,7 +197,7 @@ Resources:
                 logger.info(f"Creating workbench config file for pool {user_pool_id}!")
 
                 data_string = f"""window.APPLICATION_NAME = "{application_name}";
-                window.REGION= "{aws_region}";
+                window.REGION= os.environ['AWS_REGION'];
                 window.USER_POOL_ID= "{user_pool_id}";
                 window.USER_POOL_APP_CLIENT_ID= "{user_pool_client_id}";
                 window.USER_IDENTITY_POOL_ID= "{identity_pool_id}";
