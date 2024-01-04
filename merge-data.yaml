@@ -34,6 +34,7 @@ Resources:
           application_name: !Sub "${ApplicationName}"
           AWS_STS_REGIONAL_ENDPOINTS: "regional"
           commitlog_directory: "/mnt/commitlog"
+          HOME: "/tmp"
           public_bucket:
             Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
           data_store:

@@ -103,6 +103,7 @@ Resources:
           application_name: !Sub "${ApplicationName}"
           AWS_STS_REGIONAL_ENDPOINTS: "regional"
           commitlog_directory: "/mnt/commitlog"
+          HOME: "/tmp"
           public_bucket:
             Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
           data_store:
@@ -192,7 +193,7 @@ Resources:
 
                   test_db_path = f"{commitlog_directory}/{catalog}.db"
                   if os.path.isfile(test_db_path):
-                      connection = duckdb.connect(f"{commitlog_directory}/{catalog}.db", True, preferred_role, config={'autoinstall_known_extensions' : 'true'})
+                      connection = duckdb.connect(f"{commitlog_directory}/{catalog}.db", True, preferred_role, config={'extension_directory':commitlog_directory, 'autoinstall_known_extensions' : 'false'})
                       if payload.strip():
                           connection.execute(f"PRAGMA enable_data_inheritance;")
                           df = connection.execute(payload).fetchdf()
@@ -202,7 +203,7 @@ Resources:
                   
                   elif 'RequestType' in event and event['RequestType'] == 'create-catalog':
                       catalogues = glob.glob(f"{commitlog_directory}/*.db")
-                      connection = duckdb.connect(f"{commitlog_directory}/{catalog}.db", False)
+                      connection = duckdb.connect(f"{commitlog_directory}/{catalog}.db", False, config={'extension_directory':commitlog_directory, 'autoinstall_known_extensions' : 'false'})
                       connection.execute(f"CREATE CONFIG REMOTE 's3://{data_store}/{catalog}';")
                       connection.execute(f"CREATE CONFIG REMOTE_MERGE_PATH 's3://{public_bucket}';")
                       return {"result":"Success", "data":catalog}
@@ -221,7 +222,7 @@ Resources:
               test_db_path = f"{commitlog_directory}/{catalog_name}.db"
               if os.path.isfile(test_db_path):
                   return
-              connection = duckdb.connect(test_db_path, False, "vaultdb")
+              connection = duckdb.connect(test_db_path, False, "vaultdb", config={'extension_directory':commitlog_directory, 'autoinstall_known_extensions' : 'false'})
               connection.execute('BEGIN TRANSACTION;')
               connection.execute(f"CREATE CONFIG REMOTE 's3://{data_store}/{catalog_name}';")
               connection.execute(f"CREATE CONFIG REMOTE_MERGE_PATH 's3://{public_bucket}';")

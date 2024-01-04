@@ -41,6 +41,7 @@ Resources:
           admin_email: !Sub "${AdminEmail}"
           AWS_STS_REGIONAL_ENDPOINTS: "regional"
           vaultdb_deployment_region: !Sub "${AWS::Region}"
+          HOME: "/tmp"
           user_pool_id:
             Fn::ImportValue: !Sub "${ApplicationName}-UserPool"
           user_pool_client_id:
