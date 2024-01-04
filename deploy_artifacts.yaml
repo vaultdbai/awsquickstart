@@ -40,6 +40,8 @@ Resources:
           application_name: !Sub "${ApplicationName}"
           admin_email: !Sub "${AdminEmail}"
           AWS_STS_REGIONAL_ENDPOINTS: "regional"
+          vaultdb_deployment_region: !Sub "${AWS::Region}"
+          HOME: "/tmp"
           user_pool_id:
             Fn::ImportValue: !Sub "${ApplicationName}-UserPool"
           user_pool_client_id:
@@ -65,6 +67,7 @@ Resources:
             logger.setLevel(logging.INFO)
 
             s3 = boto3.resource("s3")
+            vaultdb_deployment_region = os.environ["vaultdb_deployment_region"]
             user_pool_id = os.environ["user_pool_id"]
             source_bucket = os.environ["source_bucket"]
             public_bucket = os.environ["public_bucket"]
@@ -124,7 +127,7 @@ Resources:
 
                 logger.info("Creating JWT Public Keys Json!")
                 keys_url = "https://cognito-idp.{}.amazonaws.com/{}/.well-known/jwks.json".format(
-                    os.environ['AWS_REGION'], user_pool_id
+                    vaultdb_deployment_region, user_pool_id
                 )
                 with urllib.request.urlopen(keys_url) as f:
                     response = f.read()
@@ -197,7 +200,7 @@ Resources:
                 logger.info(f"Creating workbench config file for pool {user_pool_id}!")
 
                 data_string = f"""window.APPLICATION_NAME = "{application_name}";
-                window.REGION= os.environ['AWS_REGION'];
+                window.REGION= "{vaultdb_deployment_region}";
                 window.USER_POOL_ID= "{user_pool_id}";
                 window.USER_POOL_APP_CLIENT_ID= "{user_pool_client_id}";
                 window.USER_IDENTITY_POOL_ID= "{identity_pool_id}";
