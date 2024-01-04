@@ -90,7 +90,7 @@ Resources:
       Description: Execute Vaultdb SQL Qeries
       FunctionName: !Join ["", [!Ref ApplicationName, "-execute-query"]]
       Handler: index.lambda_handler
-      MemorySize: 128
+      MemorySize: 256
       Role: !GetAtt ExecuteRole.Arn
       Timeout: 240
       Layers:
@@ -103,7 +103,7 @@ Resources:
           application_name: !Sub "${ApplicationName}"
           AWS_STS_REGIONAL_ENDPOINTS: "regional"
           commitlog_directory: "/mnt/commitlog"
-          HOME: "/tmp"
+          HOME: "/mnt/commitlog"
           public_bucket:
             Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
           data_store:
