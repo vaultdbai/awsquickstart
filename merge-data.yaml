@@ -22,8 +22,8 @@ Resources:
       Handler: index.lambda_handler
       Role:
         Fn::ImportValue: !Sub "${ApplicationName}-ExecuteRole"
-      MemorySize: 128
-      Timeout: 60
+      MemorySize: 256
+      Timeout: 120
       Layers:
         - Fn::ImportValue: !Sub "${ApplicationName}-VaultDBPythonLayer"
       Runtime: python3.12
@@ -34,7 +34,7 @@ Resources:
           application_name: !Sub "${ApplicationName}"
           AWS_STS_REGIONAL_ENDPOINTS: "regional"
           commitlog_directory: "/mnt/commitlog"
-          HOME: "/tmp"
+          HOME: "/mnt/commitlog"
           public_bucket:
             Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
           data_store:
@@ -98,7 +98,7 @@ Resources:
                           
                       # Retrieve the object from S3
                       response = s3_client.get_object(Bucket=source_bucket, Key=file_key)            
-                      response.read()
+                      # response.read()
                       # Read the file content line by line
                       file_content = response['Body'].iter_lines()
                       if not file_content:
