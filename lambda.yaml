@@ -127,6 +127,7 @@ Resources:
           import json
           import glob
           from json import JSONEncoder
+          import boto3
           import duckdb
 
           # Set up the logger
@@ -154,7 +155,6 @@ Resources:
                   for jwk in jwks:
                       os.remove(jwk)
               
-              import boto3
               s3 = boto3.resource('s3')
               obj = s3.meta.client.get_object(Bucket=data_store, Key="jwks.json")
               local_keys = json.loads(obj['Body'].read())
@@ -206,6 +206,8 @@ Resources:
                       connection = duckdb.connect(f"{commitlog_directory}/{catalog}.db", False)
                       connection.execute(f"CREATE CONFIG REMOTE 's3://{data_store}/{catalog}';")
                       connection.execute(f"CREATE CONFIG REMOTE_MERGE_PATH 's3://{public_bucket}';")
+                      s3 = boto3.resource("s3")
+                      s3.meta.client.upload_file(Filename=f"{commitlog_directory}/{catalog}.db", Bucket=public_bucket, Key=f"catalogs/{catalog}.db")
                       return {"result":"Success", "data":catalog}
                   
                   return {"result":"Error", "message":f"Catalog {catalog} does not exist."}
@@ -231,6 +233,8 @@ Resources:
               connection.execute("INSERT INTO tbl_ProductSales VALUES (1,'Game','Mobo Game',200),(2,'Game','PKO Game',400),(3,'Fashion','Shirt',500),(4,'Fashion','Shorts',100);")
               connection.execute("INSERT INTO another_T VALUES (1,2,3,4,5,6,7,8), (11,22,33,44,55,66,77,88), (111,222,333,444,555,666,777,888), (1111,2222,3333,4444,5555,6666,7777,8888)")
               connection.execute('COMMIT;')
+              s3 = boto3.resource("s3")
+              s3.meta.client.upload_file(Filename=f"{commitlog_directory}/{catalog_name}.db", Bucket=public_bucket, Key=f"catalogs/{catalog_name}.db")
               return connection
 
           def verify_token(token, app_client_id):
