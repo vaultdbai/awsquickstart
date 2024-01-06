@@ -116,6 +116,8 @@ Resources:
                               stmt_result = connection.execute(stmt)
                               counter+=1
                               logger.debug(f'Statement Result: {stmt_result.fetchdf()}')
+                      s3 = boto3.resource("s3")
+                      s3.meta.client.upload_file(Filename=db_path, Bucket=public_bucket, Key=f"catalogs/{database_name}.db")
 
                       if counter:
                           connection.execute(f"PRAGMA enable_data_inheritance;")
