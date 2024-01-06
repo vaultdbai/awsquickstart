@@ -204,8 +204,8 @@ Resources:
                   elif 'RequestType' in event and event['RequestType'] == 'create-catalog':
                       catalogues = glob.glob(f"{commitlog_directory}/*.db")
                       connection = duckdb.connect(f"{commitlog_directory}/{catalog}.db", False)
-                      connection.execute(f"CREATE CONFIG REMOTE 's3://{data_store}/{catalog}';")
-                      connection.execute(f"CREATE CONFIG REMOTE_MERGE_PATH 's3://{public_bucket}';")
+                      connection.execute(f"CREATE CONFIG REMOTE 's3://{public_bucket}';")
+                      connection.execute(f"CREATE CONFIG REMOTE_MERGE_PATH 's3://{data_store}/{catalog}';")
                       s3 = boto3.resource("s3")
                       s3.meta.client.upload_file(Filename=f"{commitlog_directory}/{catalog}.db", Bucket=public_bucket, Key=f"catalogs/{catalog}.db")
                       return {"result":"Success", "data":catalog}
@@ -226,8 +226,8 @@ Resources:
                   return
               connection = duckdb.connect(test_db_path, False, "vaultdb")
               connection.execute('BEGIN TRANSACTION;')
-              connection.execute(f"CREATE CONFIG REMOTE 's3://{data_store}/{catalog_name}';")
-              connection.execute(f"CREATE CONFIG REMOTE_MERGE_PATH 's3://{public_bucket}';")
+              connection.execute(f"CREATE CONFIG REMOTE 's3://{public_bucket}';")
+              connection.execute(f"CREATE CONFIG REMOTE_MERGE_PATH 's3://{data_store}/{catalog_name}';")
               connection.execute('CREATE TABLE tbl_ProductSales (ColID int, Product_Category  varchar(64), Product_Name  varchar(64), TotalSales int)')
               connection.execute('CREATE TABLE another_T (col1 INT, col2 INT, col3 INT, col4 INT, col5 INT, col6 INT, col7 INT, col8 INT)')
               connection.execute("INSERT INTO tbl_ProductSales VALUES (1,'Game','Mobo Game',200),(2,'Game','PKO Game',400),(3,'Fashion','Shirt',500),(4,'Fashion','Shorts',100);")
