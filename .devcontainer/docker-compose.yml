@@ -1,0 +1,36 @@
+version: '3'
+
+services:
+  app:
+    # Uncomment the next line to use a non-root user for all processes.
+    user: vaultdb
+    build: 
+      context: .
+      # dockerfile: dockerfile_ubuntu
+      dockerfile: dockerfile_amazonlinux
+      args:
+        USER_NAME: vaultdb
+        PYTHON_VERSION: python3.9
+        USER_UID: 1002
+        USER_GID: 1002
+    init: true
+    volumes:
+      - ..:/workspace:cached
+      - vscodeextensions:/home/vaultdb/.vscode-server/extensions
+      - vscodeinsiderextensions:/home/vaultdb/.vscode-server-insiders/extensions
+      - efs:/efs
+
+    command: sleep infinity
+    
+    environment:
+      - Business_Purpose="Development"
+
+    # Uncomment the next four lines if you will use a ptrace-based debuggers like C++, Go, and Rust.
+    cap_add:
+     - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+volumes:
+  vscodeextensions:
+  vscodeinsiderextensions:
+  efs:
