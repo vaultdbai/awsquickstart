@@ -5,13 +5,16 @@ FROM --platform=linux/x86_64 public.ecr.aws/amazonlinux/amazonlinux:${VARIANT} a
 
 ARG USER_UID=$USER_UID
 ARG USER_GID=$USER_GID
+ARG USER_NAME=$USER_NAME
 ARG PYTHON_VERSION=$PYTHON_VERSION
 
 USER root
 
 RUN dnf install -y ${PYTHON_VERSION} ${PYTHON_VERSION}-devel
 
-RUN dnf install -y tar gzip
+RUN dnf install -y tar gzip shadow-utils
+
+RUN pip3 install virtualenv
 
 # Add Tini
 ENV TINI_VERSION v0.19.0
