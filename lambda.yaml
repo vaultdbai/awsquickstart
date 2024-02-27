@@ -108,8 +108,12 @@ Resources:
             Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
           data_store:
             Fn::ImportValue: !Sub "${ApplicationName}-DataBucket"
+          user_pool_id:
+            Fn::ImportValue: !Sub "${ApplicationName}-UserPool"
           user_pool_client_id:
             Fn::ImportValue: !Sub "${ApplicationName}-UserPoolClient"
+          identity_pool_id:
+            Fn::ImportValue: !Sub "${ApplicationName}-IdentityPool"
       VpcConfig:
         SecurityGroupIds:
           - Fn::ImportValue: !Sub "${ApplicationName}-DataSecurityGroup"
@@ -139,7 +143,6 @@ Resources:
           commitlog_directory = os.environ['commitlog_directory'] if "commitlog_directory" in os.environ else "/tmp"
           public_bucket = os.environ['public_bucket'] if "public_bucket" in os.environ else None
           data_store = os.environ['data_store'] if "data_store" in os.environ else None
-          app_client_id = os.environ['user_pool_client_id'] if "user_pool_client_id" in os.environ else None
 
           def get_keys():
               from datetime import datetime
@@ -169,7 +172,8 @@ Resources:
               token = event['token']
               connection = None
               try:
-                  verified_claims = verify_token(token, app_client_id)
+                  user_pool_client_id = os.environ['user_pool_client_id'] if "user_pool_client_id" in os.environ else None
+                  verified_claims = verify_token(token, user_pool_client_id)
                   preferred_role = str(verified_claims['cognito:preferred_role']).split(':role/')[-1]        
                   logger.debug(f'preferred_role: {preferred_role}')
                   if application_name and preferred_role.startswith(application_name):
@@ -193,10 +197,13 @@ Resources:
 
                   test_db_path = f"{commitlog_directory}/{catalog}.db"
                   if os.path.isfile(test_db_path):
-                      connection = duckdb.connect(f"{commitlog_directory}/{catalog}.db", True, preferred_role, config={'autoinstall_known_extensions' : 'true'})
+                      connection = duckdb.connect(f"{commitlog_directory}/{catalog}.db", True, preferred_role)
                       if payload.strip():
                           connection.execute(f"PRAGMA enable_data_inheritance;")
                           df = connection.execute(payload).fetchdf()
+                          if "create" in payload.lower() or "alter" in payload.lower():
+                              s3 = boto3.resource("s3")
+                              s3.meta.client.upload_file(Filename=f"{commitlog_directory}/{catalog}.db", Bucket=public_bucket, Key=f"catalogs/{catalog}.db")
                           return {"result":"Success", "data":df.to_json(orient="index")}
                       
                       return {"result":"Success", "data":{"result":"empty payload. please check your query."}}
@@ -204,8 +211,14 @@ Resources:
                   elif 'RequestType' in event and event['RequestType'] == 'create-catalog':
                       catalogues = glob.glob(f"{commitlog_directory}/*.db")
                       connection = duckdb.connect(f"{commitlog_directory}/{catalog}.db", False)
-                      connection.execute(f"CREATE CONFIG REMOTE 's3://{public_bucket}';")
-                      connection.execute(f"CREATE CONFIG REMOTE_MERGE_PATH 's3://{data_store}/{catalog}';")
+                      connection.execute(f"CREATE CONFIG application_name AS '{application_name}';")
+                      connection.execute(f"CREATE CONFIG remote AS 's3://{data_store}/{catalog}';")
+                      connection.execute(f"CREATE CONFIG remote_merge_path AS 's3://{public_bucket}/{catalog}';")
+                      user_pool_id = os.environ['user_pool_id'] if "user_pool_id" in os.environ else None
+                      identity_pool_id = os.environ['identity_pool_id'] if "identity_pool_id" in os.environ else None            
+                      connection.execute(f"CREATE CONFIG user_pool_id AS '{user_pool_id}';")
+                      connection.execute(f"CREATE CONFIG user_pool_client_id AS '{user_pool_client_id}';")
+                      connection.execute(f"CREATE CONFIG identity_pool_id AS '{identity_pool_id}';")
                       s3 = boto3.resource("s3")
                       s3.meta.client.upload_file(Filename=f"{commitlog_directory}/{catalog}.db", Bucket=public_bucket, Key=f"catalogs/{catalog}.db")
                       return {"result":"Success", "data":catalog}
@@ -226,8 +239,15 @@ Resources:
                   return
               connection = duckdb.connect(test_db_path, False, "vaultdb")
               connection.execute('BEGIN TRANSACTION;')
-              connection.execute(f"CREATE CONFIG REMOTE 's3://{public_bucket}';")
-              connection.execute(f"CREATE CONFIG REMOTE_MERGE_PATH 's3://{data_store}/{catalog_name}';")
+              connection.execute(f"CREATE CONFIG application_name AS '{application_name}';")
+              connection.execute(f"CREATE CONFIG remote AS 's3://{data_store}/{catalog_name}';")
+              connection.execute(f"CREATE CONFIG remote_merge_path AS 's3://{public_bucket}/{catalog_name}';")
+              user_pool_client_id = os.environ['user_pool_client_id'] if "user_pool_client_id" in os.environ else None
+              user_pool_id = os.environ['user_pool_id'] if "user_pool_id" in os.environ else None
+              identity_pool_id = os.environ['identity_pool_id'] if "identity_pool_id" in os.environ else None
+              connection.execute(f"CREATE CONFIG user_pool_id AS '{user_pool_id}';")
+              connection.execute(f"CREATE CONFIG user_pool_client_id AS '{user_pool_client_id}';")
+              connection.execute(f"CREATE CONFIG identity_pool_id AS '{identity_pool_id}';")
               connection.execute('CREATE TABLE tbl_ProductSales (ColID int, Product_Category  varchar(64), Product_Name  varchar(64), TotalSales int)')
               connection.execute('CREATE TABLE another_T (col1 INT, col2 INT, col3 INT, col4 INT, col5 INT, col6 INT, col7 INT, col8 INT)')
               connection.execute("INSERT INTO tbl_ProductSales VALUES (1,'Game','Mobo Game',200),(2,'Game','PKO Game',400),(3,'Fashion','Shirt',500),(4,'Fashion','Shorts',100);")
@@ -237,7 +257,7 @@ Resources:
               s3.meta.client.upload_file(Filename=f"{commitlog_directory}/{catalog_name}.db", Bucket=public_bucket, Key=f"catalogs/{catalog_name}.db")
               return connection
 
-          def verify_token(token, app_client_id):
+          def verify_token(token, user_pool_client_id):
               import time
               from jose import jwk, jwt
               from jose.utils import base64url_decode
@@ -271,7 +291,7 @@ Resources:
               if time.time() > claims['exp']:
                   raise Exception('Token is expired')
               # and the Audience  (use claims['client_id'] if verifying an access token)
-              if claims['aud'] != app_client_id:
+              if claims['aud'] != user_pool_client_id:
                   raise Exception('Token was not issued for this audience')
               # now we can use the claims
               logger.debug(claims)

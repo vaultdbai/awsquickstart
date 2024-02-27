@@ -1,0 +1,73 @@
+ARG VARIANT="full-20.04"
+FROM catthehacker/ubuntu:${VARIANT} as base
+
+ARG USER_UID=$USER_UID
+ARG USER_GID=$USER_GID
+ARG PYTHON_VERSION=$PYTHON_VERSION
+ARG USER_NAME=$USER_NAME
+
+USER root
+
+# Python package management and basic dependencies
+RUN apt-get update -y -qq; \
+    add-apt-repository ppa:deadsnakes/ppa
+RUN apt-get install -y -qq ${PYTHON_VERSION}
+RUN apt-get install -y -qq curl ${PYTHON_VERSION}-dev ${PYTHON_VERSION}-distutils
+
+# Register the version in alternatives
+RUN update-alternatives --install /usr/bin/python python /usr/bin/${PYTHON_VERSION} 1
+RUN update-alternatives --install /usr/local/bin/python python /usr/bin/${PYTHON_VERSION} 1
+
+# Set python 3 as the default python
+RUN update-alternatives --set python /usr/bin/${PYTHON_VERSION}
+
+RUN apt-get install -y -qq python3-pip
+
+# Upgrade pip to latest version
+RUN curl -s https://bootstrap.pypa.io/get-pip.py -o get-pip.py && \
+    python get-pip.py --force-reinstall && \
+    rm get-pip.py
+
+RUN apt-get install -y -qq tzdata;
+
+FROM base as build_machine
+
+RUN pip3 install virtualenv
+
+RUN apt-get install graphviz
+
+RUN apt-get install -y -qq graphviz git
+
+# clean
+RUN apt-get -y clean;
+
+ENV TINI_VERSION v0.19.0
+
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
+RUN chmod +x /tini
+
+RUN groupadd -r ${USER_NAME} --gid ${USER_GID}; \
+	useradd -rm -d /home/${USER_NAME} -s /bin/bash -g ${USER_NAME} -G sudo --password ${USER_NAME} --uid ${USER_UID} ${USER_NAME}
+
+RUN mkdir -p /home/${USER_NAME} \
+    && mkdir -p /efs \
+    && chown -R ${USER_NAME} /home/${USER_NAME} \
+    && chown -R ${USER_NAME} /efs		
+
+RUN echo 'root:vaultdb!' | chpasswd
+
+USER ${USER_NAME}
+
+WORKDIR /home/${USER_NAME}
+
+RUN mkdir -p /home/${USER_NAME}/.vscode-server/extensions
+RUN mkdir -p /home/${USER_NAME}/.vscode-server-insiders/extensions
+
+# activating environment
+RUN cd /home/${USER_NAME} && virtualenv env
+
+ENV TZ="America/New_York"
+ENV VIRTUAL_ENV /home/${USER_NAME}/env
+ENV PATH /home/${USER_NAME}/env/bin:$PATH
+
+ENTRYPOINT ["/tini", "--"]
