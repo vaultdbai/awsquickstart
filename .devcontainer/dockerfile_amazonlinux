@@ -12,7 +12,7 @@ USER root
 
 RUN dnf install -y ${PYTHON_VERSION} ${PYTHON_VERSION}-devel
 
-RUN dnf install -y tar gzip shadow-utils
+RUN dnf install -y tar gzip shadow-utils git
 
 RUN pip3 install virtualenv
 

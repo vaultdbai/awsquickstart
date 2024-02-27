@@ -36,6 +36,8 @@ RUN pip3 install virtualenv
 
 RUN apt-get install graphviz
 
+RUN apt-get install -y -qq graphviz git
+
 # clean
 RUN apt-get -y clean;
 

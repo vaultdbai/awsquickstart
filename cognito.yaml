@@ -79,6 +79,7 @@ Resources:
       ClientName: !Join ["", [!Ref ApplicationName, "-client"]]
       GenerateSecret: false
       UserPoolId: !Ref UserPool
+      ExplicitAuthFlows:  ['ALLOW_CUSTOM_AUTH', 'ALLOW_USER_SRP_AUTH', 'ALLOW_REFRESH_TOKEN_AUTH', 'ALLOW_USER_PASSWORD_AUTH']
 
   # Creates a federeated Identity pool
   IdentityPool:
