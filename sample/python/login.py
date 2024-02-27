@@ -78,12 +78,12 @@ def cognito(path, username, password, **userpoolargs):
 if __name__ == "__main__":
     logger.setLevel(logging.DEBUG)  # Very verbose
     connection = cognito (
-        "memory",
+        ":memory:",
         "vaultdb",
         "test123",
-        USER_POOL_ID="us-east-2_XpU8yRtug",
-        USER_POOL_APP_CLIENT_ID="3m036a7r9ic9bv3oq9scgtp04m",
-        USER_IDENTITY_POOL_ID="us-east-2:333c9686-af9c-40e7-af91-fc4a47d8b44b",
-        USER_BUCKET="dev-public-storage-440955376164",
+        USER_POOL_ID="us-east-2_XXXXXX",
+        USER_POOL_APP_CLIENT_ID="XXXXXXXXXXXXX",
+        USER_IDENTITY_POOL_ID="us-east-2:XXXXXXXXXXXXXXXXXXXX",
+        USER_BUCKET="XXX-public-storage-NNNNNNNNNNNNN",
         CATALOG="memory",
     )
