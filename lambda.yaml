@@ -84,7 +84,8 @@ Resources:
       Code:
         ImageUri: !Ref LambdaImageUri
       ImageConfig:
-        Command: "query.lambda_handler"
+        Command: 
+          - "query.lambda_handler"
       Architectures:
         - x86_64
       Timeout: 240

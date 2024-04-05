@@ -29,7 +29,8 @@ Resources:
       Code:
         ImageUri: !Ref LambdaImageUri
       ImageConfig:
-        Command: "merge.lambda_handler"
+        Command: 
+          - "merge.lambda_handler"
       Architectures:
         - x86_64
       MemorySize: 256

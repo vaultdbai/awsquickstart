@@ -131,6 +131,7 @@ Resources:
                 Resource: "*"
               - Effect: Allow
                 Action:
+                  - cognito-idp:AdminGetUser
                   - cognito-idp:DescribeUserPool
                   - cognito-idp:ListTagsForResource
                   - cognito-idp:DescribeUserPoolClient
@@ -266,19 +267,10 @@ Resources:
               - Effect: Allow
                 Action:
                   - ec2:DeleteSubnet
-                Resource: "arn:aws:ec2:*:*:subnet/*"
-                Condition:
-                  StringEquals:
-                    "ec2:ResourceTag/Project": "VaultDB"
-              - Effect: Allow
-                Action:
                   - ec2:DeleteRouteTable
                   - ec2:ReplaceRoute
                   - ec2:DeleteRoute
-                Resource: "arn:aws:ec2:*:*:route-table/*"
-                Condition:
-                  StringEquals:
-                    "ec2:ResourceTag/Project": "VaultDB"
+                Resource: "*"
 Outputs:
   ServiceRoleARN:
     Description: VaultDB cloudformation service role
