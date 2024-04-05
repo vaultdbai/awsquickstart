@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: VaultDB Infrstructure.
+Description: VaultDB Infrastructure.
 Parameters:
   AdminEmail:
     Description: VaultDB Admin Email for default database user notifications
@@ -130,7 +130,7 @@ Resources:
           - "/awsquickstart/lambda.yaml"
       Parameters:
         ApplicationName: !Ref AWS::StackName
-        LambdaImageUri: !Ref AWS::LambdaImageUri
+        LambdaImageUri: !Ref LambdaImageUri
 
   MergeDeploymentStack:
     Type: AWS::CloudFormation::Stack
@@ -143,4 +143,4 @@ Resources:
           - "/awsquickstart/merge-data.yaml"
       Parameters:
         ApplicationName: !Ref AWS::StackName
-        LambdaImageUri: !Ref AWS::LambdaImageUri
+        LambdaImageUri: !Ref LambdaImageUri
