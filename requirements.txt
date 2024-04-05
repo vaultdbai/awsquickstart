@@ -1,0 +1,9 @@
+cfnresponse
+botocore
+boto3
+numpy>=1.19.3 
+pandas>=1.4.2 
+fsspec
+python-jose[rsa]
+python-jose[cryptography]
+vaultdb
