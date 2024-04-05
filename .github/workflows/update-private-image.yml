@@ -1,4 +1,4 @@
-name: Update VaultDB Lambda Image
+name: Update Private Lambda Image
 
 on:
   workflow_dispatch:
@@ -21,28 +21,24 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Configure AWS Credentials
+      - name: Configure AWS local region Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.S3_ID }}
           aws-secret-access-key: ${{ secrets.S3_KEY }}
-          aws-region: us-east-1 
-          # ECR Public can only be logged into from the us-east-1 region. In the aws-actions/configure-aws-credentials action, the aws-region input must be us-east-1
+          aws-region: ${{ secrets.AWS_REGION }}
           
-      - name: Login to Amazon ECR Public
-        id: login-ecr-public
+      - name: Login to Amazon ECR private
+        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
-        with:
-          registry-type: public
 
-      - name: Build, tag, and push image to Amazon ECR
-        id: build-image
+      - name: Push image to private Amazon ECR
+        id: push-private-image
         env:
-          REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
-          REGISTRY_ALIAS: "i2q7a2j7"
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           REPOSITORY: "vaultdb"
           IMAGE_TAG: lambda
         run: |
-          docker build -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG .
-          docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG
-          echo "::set-output name=image::$REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG"
+          docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
+          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+          echo "::set-output name=image::$REGISTRY/$REPOSITORY:$IMAGE_TAG"

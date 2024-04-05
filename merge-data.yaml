@@ -21,6 +21,10 @@ Resources:
       Tags:
         - Key: Purpose
           Value: "VaultDB"
+        - Key: Project
+          Value: !Ref ApplicationName
+        - Key: createdBy
+          Value: vaultdb.ai
       Description: Merge Data into VaultDB Hub
       FunctionName: !Join ["", [!Ref ApplicationName, "-merge-data"]]
       Handler: index.lambda_handler
@@ -28,9 +32,10 @@ Resources:
         Fn::ImportValue: !Sub "${ApplicationName}-ExecuteRole"
       Code:
         ImageUri: !Ref LambdaImageUri
+      PackageType: Image
       ImageConfig:
         Command: 
-          - "merge.lambda_handler"
+          - merge.lambda_handler
       Architectures:
         - x86_64
       MemorySize: 256

@@ -15,6 +15,32 @@ Parameters:
     Default: "public.ecr.aws/i2q7a2j7/vaultdb:lambda"
 
 Resources:
+  LambdaECR:
+    Type: AWS::ECR::Repository
+    Description: ECR to hold image of Lambda function
+    Properties:
+      ImageScanningConfiguration: 
+        ScanOnPush: true
+      RepositoryName: !Join ["", [!Ref ApplicationName, "-ecr-repo"]]
+      RepositoryPolicyText:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: ECRLambdaPolicy
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - "ecr:BatchGetImage"
+              - "ecr:GetDownloadUrlForLayer"
+      Tags:
+        - Key: Purpose
+          Value: "VaultDB"
+        - Key: Project
+          Value: !Ref ApplicationName
+        - Key: createdBy
+          Value: vaultdb.ai
+            
   ExecuteRole:
     Type: AWS::IAM::Role
     Properties:
@@ -22,6 +48,10 @@ Resources:
       Tags:
         - Key: Purpose
           Value: "VaultDB"
+        - Key: Project
+          Value: !Ref ApplicationName
+        - Key: createdBy
+          Value: vaultdb.ai
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -78,14 +108,19 @@ Resources:
       Tags:
         - Key: Purpose
           Value: "VaultDB"
+        - Key: Project
+          Value: !Ref ApplicationName
+        - Key: createdBy
+          Value: vaultdb.ai
       Description: Execute Vaultdb SQL Queries
       FunctionName: !Join ["", [!Ref ApplicationName, "-execute-query"]]
       Role: !GetAtt ExecuteRole.Arn
       Code:
-        ImageUri: !Ref LambdaImageUri
+        ImageUri: !GetAtt LambdaECR.RepositoryUri
+      PackageType: Image
       ImageConfig:
         Command: 
-          - "query.lambda_handler"
+          - query.lambda_handler
       Architectures:
         - x86_64
       Timeout: 240
