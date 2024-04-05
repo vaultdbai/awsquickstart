@@ -107,6 +107,11 @@ Resources:
                 Resource: "*"
               - Effect: Allow
                 Action:
+                  - ecr-public:GetAuthorizationToken
+                  - sts:GetServiceBearerToken
+                Resource: "*"
+              - Effect: Allow
+                Action:
                   - elasticfilesystem:CreateFileSystem
                   - elasticfilesystem:PutLifecycleConfiguration
                   - elasticfilesystem:DescribeFileSystems
