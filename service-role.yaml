@@ -109,6 +109,8 @@ Resources:
                 Action:
                   - ecr-public:GetAuthorizationToken
                   - sts:GetServiceBearerToken
+                  - ecr:BatchGetImage
+                  - ecr:GetDownloadUrlForLayer
                 Resource: "*"
               - Effect: Allow
                 Action:
@@ -212,7 +214,7 @@ Resources:
                 Resource: "*"
                 Condition:
                   StringEquals:
-                    "s3:ResourceTag/Project": "VaultDB"
+                    "s3:ResourceTag/Purpose": "VaultDB"
               - Effect: Allow
                 Action:
                   - events:DescribeRule
@@ -255,7 +257,7 @@ Resources:
                 Resource: "arn:aws:iam::*"
                 Condition:
                   StringEquals:
-                    "iam:ResourceTag/Project": "VaultDB"
+                    "iam:ResourceTag/Purpose": "VaultDB"
               - Effect: Allow
                 Action:
                   - ec2:DeleteInternetGateway
@@ -263,7 +265,7 @@ Resources:
                 Resource: "arn:aws:ec2:*:*:internet-gateway/*"
                 Condition:
                   StringEquals:
-                    "ec2:ResourceTag/Project": "VaultDB"
+                    "ec2:ResourceTag/Purpose": "VaultDB"
               - Effect: Allow
                 Action:
                   - ec2:DeleteSubnet
@@ -271,6 +273,9 @@ Resources:
                   - ec2:ReplaceRoute
                   - ec2:DeleteRoute
                 Resource: "*"
+                Condition:
+                  StringEquals:
+                    "ec2:ResourceTag/Purpose": "VaultDB"
 Outputs:
   ServiceRoleARN:
     Description: VaultDB cloudformation service role

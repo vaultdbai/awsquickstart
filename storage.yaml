@@ -26,6 +26,10 @@ Resources:
       Tags:
         - Key: Purpose
           Value: "VaultDB"
+        - Key: Project
+          Value: !Ref ApplicationName
+        - Key: createdBy
+          Value: vaultdb.ai
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -59,6 +63,10 @@ Resources:
       Tags:
         - Key: Purpose
           Value: "VaultDB"
+        - Key: Project
+          Value: !Ref ApplicationName
+        - Key: createdBy
+          Value: vaultdb.ai
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:

@@ -52,6 +52,8 @@ Resources:
       Tags:
         - Key: Purpose
           Value: "VaultDB"
+        - Key: Project
+          Value: !Ref ApplicationName
         - Key: Name
           Value: !Join
             - ""
@@ -66,6 +68,8 @@ Resources:
       Tags:
         - Key: Purpose
           Value: "VaultDB"
+        - Key: Project
+          Value: !Ref ApplicationName
         - Key: Name
           Value: !Join
             - ""
@@ -101,6 +105,13 @@ Resources:
       ToPort: 2049
       SourceSecurityGroupId: !GetAtt DataSecurityGroup.GroupId
       GroupId: !GetAtt DataSecurityGroup.GroupId
+      Tags:
+        - Key: Purpose
+          Value: "VaultDB"
+        - Key: Project
+          Value: !Ref ApplicationName
+        - Key: createdBy
+          Value: vaultdb.ai
 
   S3InboundRule:
     Type: AWS::EC2::SecurityGroupIngress
@@ -110,6 +121,13 @@ Resources:
       ToPort: 443
       SourceSecurityGroupId: !GetAtt DataSecurityGroup.GroupId
       GroupId: !GetAtt DataSecurityGroup.GroupId
+      Tags:
+        - Key: Purpose
+          Value: "VaultDB"
+        - Key: Project
+          Value: !Ref ApplicationName
+        - Key: createdBy
+          Value: vaultdb.ai
 
   S3GatewayEndpoint:
     Type: "AWS::EC2::VPCEndpoint"
