@@ -12,7 +12,7 @@ Parameters:
   
   LambdaImageUri:
     Type: String
-    Default: "public.ecr.aws/i2q7a2j7/vaultdb:lambda"
+    Default: "440955376164.dkr.ecr.us-east-2.amazonaws.com/vaultdb:lambda"
 
 Resources:
   LambdaECR:
