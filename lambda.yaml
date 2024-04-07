@@ -15,32 +15,6 @@ Parameters:
     Default: "440955376164.dkr.ecr.us-east-2.amazonaws.com/vaultdb:lambda"
 
 Resources:
-  LambdaECR:
-    Type: AWS::ECR::Repository
-    Description: ECR to hold image of Lambda function
-    Properties:
-      ImageScanningConfiguration: 
-        ScanOnPush: true
-      RepositoryName: !Join ["", [!Ref ApplicationName, "-ecr-repo"]]
-      RepositoryPolicyText:
-        Version: "2012-10-17"
-        Statement:
-          - Sid: ECRLambdaPolicy
-            Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-            Action:
-              - "ecr:BatchGetImage"
-              - "ecr:GetDownloadUrlForLayer"
-      Tags:
-        - Key: Purpose
-          Value: "VaultDB"
-        - Key: Project
-          Value: !Ref ApplicationName
-        - Key: createdBy
-          Value: vaultdb.ai
-            
   ExecuteRole:
     Type: AWS::IAM::Role
     Properties:
@@ -116,7 +90,7 @@ Resources:
       FunctionName: !Join ["", [!Ref ApplicationName, "-execute-query"]]
       Role: !GetAtt ExecuteRole.Arn
       Code:
-        ImageUri: !GetAtt LambdaECR.RepositoryUri
+        ImageUri: !Ref LambdaImageUri
       PackageType: Image
       ImageConfig:
         Command: 
