@@ -27,7 +27,6 @@ Resources:
           Value: vaultdb.ai
       Description: Merge Data into VaultDB Hub
       FunctionName: !Join ["", [!Ref ApplicationName, "-merge-data"]]
-      Handler: index.lambda_handler
       Role:
         Fn::ImportValue: !Sub "${ApplicationName}-ExecuteRole"
       Code:

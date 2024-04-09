@@ -111,6 +111,9 @@ Resources:
                   - sts:GetServiceBearerToken
                   - ecr:BatchGetImage
                   - ecr:GetDownloadUrlForLayer
+                  - ecr:SetRepositoryPolicy
+                  - ecr:GetRepositoryPolicy
+                  - ecr:InitiateLayerUpload
                 Resource: "*"
               - Effect: Allow
                 Action:
