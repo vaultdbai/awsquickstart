@@ -19,7 +19,7 @@ RUN rm -rf /tmp/vaultdb_python312.tar.gz
 RUN dnf remove -y tar gzip
 
 # Install extensions
-RUN python ${LAMBDA_TASK_ROOT}/prepare.py
+# RUN python ${LAMBDA_TASK_ROOT}/prepare.py
 
 # Set the CMD to your handler (could also be done as a parameter override outside of the Dockerfile)
 CMD [ "query.handler" ]
