@@ -55,6 +55,13 @@ def lambda_handler(event, context):
             preferred_role = preferred_role[:-10]
         logger.debug(f'role: {preferred_role}')
 
+        if 'RequestType' in event and event['RequestType'] == 'clean':
+            for catalog in glob.glob(f"{commitlog_directory}/*.db"):
+                if os.path.exists(catalog):
+                    os.remove(catalog)
+            catalogues = glob.glob(f"{commitlog_directory}/*.db")
+            return {"result":"Success", "data":catalogues}
+        
         if 'RequestType' in event and event['RequestType'] == 'fetch-catalogues':
             if not os.path.isfile(f"{commitlog_directory}/{application_name}.db"):
                 connection = create_sample_database(application_name) # Create Default Database for sample
@@ -111,21 +118,30 @@ def create_sample_database(catalog_name):
     if os.path.isfile(test_db_path):
         return
     connection = duckdb.connect(test_db_path, False, "vaultdb")
-    connection.execute('BEGIN TRANSACTION;')
-    connection.execute(f"CREATE CONFIG application_name AS '{application_name}';")
+    
     connection.execute(f"CREATE CONFIG remote AS 's3://{data_store}/{catalog_name}';")
     connection.execute(f"CREATE CONFIG remote_merge_path AS 's3://{public_bucket}/{catalog_name}';")
+
+    connection.execute(f"CREATE CONFIG application_name AS '{application_name}';")
     user_pool_client_id = os.environ['user_pool_client_id'] if "user_pool_client_id" in os.environ else None
     user_pool_id = os.environ['user_pool_id'] if "user_pool_id" in os.environ else None
     identity_pool_id = os.environ['identity_pool_id'] if "identity_pool_id" in os.environ else None
     connection.execute(f"CREATE CONFIG user_pool_id AS '{user_pool_id}';")
     connection.execute(f"CREATE CONFIG user_pool_client_id AS '{user_pool_client_id}';")
     connection.execute(f"CREATE CONFIG identity_pool_id AS '{identity_pool_id}';")
-    connection.execute('CREATE TABLE tbl_ProductSales (ColID int, Product_Category  varchar(64), Product_Name  varchar(64), TotalSales int)')
-    connection.execute('CREATE TABLE another_T (col1 INT, col2 INT, col3 INT, col4 INT, col5 INT, col6 INT, col7 INT, col8 INT)')
-    connection.execute("INSERT INTO tbl_ProductSales VALUES (1,'Game','Mobo Game',200),(2,'Game','PKO Game',400),(3,'Fashion','Shirt',500),(4,'Fashion','Shorts',100);")
-    connection.execute("INSERT INTO another_T VALUES (1,2,3,4,5,6,7,8), (11,22,33,44,55,66,77,88), (111,222,333,444,555,666,777,888), (1111,2222,3333,4444,5555,6666,7777,8888)")
+
+    connection.execute('BEGIN TRANSACTION;')
+    if catalog_name==application_name:
+        connection.execute('CREATE TABLE tbl_ProductSales (ColID int, Product_Category  varchar(64), Product_Name  varchar(64), TotalSales int)')
+        connection.execute('CREATE TABLE another_T (col1 INT, col2 INT, col3 INT, col4 INT, col5 INT, col6 INT, col7 INT, col8 INT)')
+        connection.execute("INSERT INTO tbl_ProductSales VALUES (1,'Game','Mobo Game',200),(2,'Game','PKO Game',400),(3,'Fashion','Shirt',500),(4,'Fashion','Shorts',100);")
+        connection.execute("INSERT INTO another_T VALUES (1,2,3,4,5,6,7,8), (11,22,33,44,55,66,77,88), (111,222,333,444,555,666,777,888), (1111,2222,3333,4444,5555,6666,7777,8888)")
+    else:
+        connection.execute('CREATE TABLE demo (col1 INT, col2 INT, col3 INT, col4 INT, col5 INT, col6 INT, col7 INT, col8 INT)')
+        connection.execute("INSERT INTO demo VALUES (1,2,3,4,5,6,7,8), (11,22,33,44,55,66,77,88), (111,222,333,444,555,666,777,888), (1111,2222,3333,4444,5555,6666,7777,8888)")
+        
     connection.execute('COMMIT;')
+    
     s3 = boto3.resource("s3")
     s3.meta.client.upload_file(Filename=f"{commitlog_directory}/{catalog_name}.db", Bucket=public_bucket, Key=f"catalogs/{catalog_name}.db")
     return connection
@@ -174,6 +190,14 @@ def verify_token(token, user_pool_client_id):
 # AWS Lambda and any other local environments
 if __name__ == '__main__':
     # for testing locally you can enter the JWT ID Token here
-    event = {'token':''}
+    event = {}
+    event['token'] = ''
+    event['RequestType'] = 'fetch-catalogues'
+    event['database'] = "dev"
+    event['catalog'] = "dev"
+    event['payload'] = "SELECT * FROM another_T"
+    #event['payload'] = "SELECT * FROM vaultdb_configs()"
+    #event['payload'] = "SELECT * FROM 's3://dev-data-440955376164/jwks.json'"    
     context = {'identity': {'cognito_identity_id':'', 'cognito_identity_pool_id':''}}
-    lambda_handler(event, context)
+    result = lambda_handler(event, context)
+    print(result)
