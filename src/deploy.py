@@ -34,7 +34,6 @@ def lambda_handler(event, context):
         else:
             logger.info("New files uploaded to the source bucket.")
             deploy_folder(source_bucket, public_bucket, folder_name="workbench/")
-            deploy_folder(source_bucket, data_bucket, folder_name="release/")
             create_pool_cofig(public_bucket)
             create_welcome_page(public_bucket)
             create_public_keys(data_bucket)
