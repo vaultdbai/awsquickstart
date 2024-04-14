@@ -89,18 +89,7 @@ def lambda_handler(event, context):
             return {"result":"Success", "data":{"result":"empty payload. please check your query."}}
         
         elif 'RequestType' in event and event['RequestType'] == 'create-catalog':
-            catalogues = glob.glob(f"{commitlog_directory}/*.db")
-            connection = duckdb.connect(f"{commitlog_directory}/{catalog}.db", False)
-            connection.execute(f"CREATE CONFIG application_name AS '{application_name}';")
-            connection.execute(f"CREATE CONFIG remote AS 's3://{data_store}/{catalog}';")
-            connection.execute(f"CREATE CONFIG remote_merge_path AS 's3://{public_bucket}/{catalog}';")
-            user_pool_id = os.environ['user_pool_id'] if "user_pool_id" in os.environ else None
-            identity_pool_id = os.environ['identity_pool_id'] if "identity_pool_id" in os.environ else None            
-            connection.execute(f"CREATE CONFIG user_pool_id AS '{user_pool_id}';")
-            connection.execute(f"CREATE CONFIG user_pool_client_id AS '{user_pool_client_id}';")
-            connection.execute(f"CREATE CONFIG identity_pool_id AS '{identity_pool_id}';")
-            s3 = boto3.resource("s3")
-            s3.meta.client.upload_file(Filename=f"{commitlog_directory}/{catalog}.db", Bucket=public_bucket, Key=f"catalogs/{catalog}.db")
+            connection = create_sample_database(catalog)
             return {"result":"Success", "data":catalog}
         
         return {"result":"Error", "message":f"Catalog {catalog} does not exist."}
@@ -141,6 +130,11 @@ def create_sample_database(catalog_name):
         connection.execute("INSERT INTO demo VALUES (1,2,3,4,5,6,7,8), (11,22,33,44,55,66,77,88), (111,222,333,444,555,666,777,888), (1111,2222,3333,4444,5555,6666,7777,8888)")
         
     connection.execute('COMMIT;')
+    connection.close()
+    connection = duckdb.connect(test_db_path, False, "vaultdb")
+    configs = connection.execute("select config_name, config_value from vaultdb_configs").fetchall()
+    if not configs:
+        raise Exception("Config Data Not found in Database")
     
     s3 = boto3.resource("s3")
     s3.meta.client.upload_file(Filename=f"{commitlog_directory}/{catalog_name}.db", Bucket=public_bucket, Key=f"catalogs/{catalog_name}.db")
