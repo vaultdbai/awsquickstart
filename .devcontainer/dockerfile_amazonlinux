@@ -14,7 +14,7 @@ RUN dnf install -y ${PYTHON_VERSION} ${PYTHON_VERSION}-devel
 
 RUN dnf install -y tar gzip shadow-utils git
 
-RUN pip3 install virtualenv
+RUN pip3 install virtualenv, ipykernel
 
 # Add Tini
 ENV TINI_VERSION v0.19.0

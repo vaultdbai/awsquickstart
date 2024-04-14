@@ -32,6 +32,8 @@ RUN apt-get install -y -qq tzdata;
 
 FROM base as build_machine
 
+RUN pip3 install ipykernel
+
 RUN pip3 install virtualenv
 
 RUN apt-get install graphviz
