@@ -136,6 +136,8 @@ def create_sample_database(catalog_name):
     s3 = boto3.resource("s3")
     s3.meta.client.upload_file(Filename=f"{commitlog_directory}/{catalog_name}.db", Bucket=public_bucket, Key=f"catalogs/{catalog_name}.db")
     logger.debug(f'copied {catalog_name} database file to s3 ')    
+    connection.execute(f"MERGE DATABASE {catalog_name};")    
+    logger.debug(f'Merged new Database {catalog_name}')    
     return connection
 
 def verify_token(token, user_pool_client_id):
