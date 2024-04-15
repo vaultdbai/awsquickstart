@@ -144,8 +144,8 @@ Resources:
 
 Outputs:
   DataBucketNameArn:
-    Description: Name of the main bucket
-    Value: !Ref DataBucket.Arn
+    Description: ANR of the main bucket
+    Value: !GetAtt DataBucket.Arn
     Export:
       Name: !Sub ${ApplicationName}-DataBucket-arn
   DataBucketName:
