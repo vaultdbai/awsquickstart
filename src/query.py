@@ -54,19 +54,6 @@ def lambda_handler(event, context):
         if preferred_role.endswith('-AdminRole'):
             preferred_role = preferred_role[:-10]
         logger.debug(f'role: {preferred_role}')
-
-        if 'RequestType' in event and event['RequestType'] == 'clean':
-            s3 = boto3.resource("s3")
-            for catalog in glob.glob(f"{commitlog_directory}/*.db"):
-                if os.path.exists(catalog):
-                    try:
-                        s3.Object(public_bucket, f"catalogs/{catalog}.db").delete()
-                        os.remove(catalog)
-                    finally:
-                        logger.error("error occured while deleting file")                    
-                        
-            catalogues = glob.glob(f"{commitlog_directory}/*.db")
-            return {"result":"Success", "data":catalogues}
         
         if 'RequestType' in event and event['RequestType'] == 'fetch-catalogues':
             if not os.path.isfile(f"{commitlog_directory}/{application_name}.db"):
