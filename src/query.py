@@ -143,7 +143,7 @@ def create_sample_database(catalog_name):
     if not configs:
         raise Exception("Config Data Not found in Database")
 
-    connection.execute('MERGE DATABASE {catalog_name};')    
+    connection.execute(f"MERGE DATABASE {catalog_name};")    
     s3 = boto3.resource("s3")
     s3.meta.client.upload_file(Filename=f"{commitlog_directory}/{catalog_name}.db", Bucket=public_bucket, Key=f"catalogs/{catalog_name}.db")
     return connection
