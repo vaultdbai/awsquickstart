@@ -124,6 +124,10 @@ def create_sample_database(catalog_name):
         connection.execute("INSERT INTO demo VALUES (1,2,3,4,5,6,7,8), (11,22,33,44,55,66,77,88), (111,222,333,444,555,666,777,888), (1111,2222,3333,4444,5555,6666,7777,8888)")
         
     connection.execute('COMMIT;')    
+    connection.close()
+    # Closing connection to make sure databse file gets written fully before we move it to s3
+    
+    connection = duckdb.connect(test_db_path, False, "vaultdb")
     configs = connection.execute("select config_name, config_value from vaultdb_configs").fetchall()
     logger.debug(f'configs: {configs}')    
     if not configs:
