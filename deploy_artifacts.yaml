@@ -56,6 +56,15 @@ Resources:
             Fn::ImportValue: !Sub "${ApplicationName}-DataBucket"
           cloudformation_service_role_Arn:
             Fn::ImportValue: "vaultdb-cloudformation-service-role-Arn"
+      VpcConfig:
+        SecurityGroupIds:
+          - Fn::ImportValue: !Sub "${ApplicationName}-DataSecurityGroup"
+        SubnetIds:
+          - Fn::ImportValue: !Sub "${ApplicationName}-VPCPrivateSubnet"
+      FileSystemConfigs:
+        - Arn: 
+            Fn::ImportValue: !Sub "${ApplicationName}-EFSAccessPointResource"
+          LocalMountPath: /mnt/commitlog
       Code:
         ZipFile: |
             import boto3
