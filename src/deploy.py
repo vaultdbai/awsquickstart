@@ -3,6 +3,7 @@ import cfnresponse
 import botocore
 import os
 import logging
+import glob
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -13,12 +14,26 @@ user_pool_id = os.environ["user_pool_id"]
 source_bucket = os.environ["source_bucket"]
 public_bucket = os.environ["public_bucket"]
 data_bucket = os.environ["data_bucket"]
-
+commitlog_directory = os.environ['commitlog_directory'] if "commitlog_directory" in os.environ else "/mnt/commitlog"
 
 def lambda_handler(event, context):
     try:
         logger.info(f"event: {event}!")
-        if event["RequestType"] == "Delete":
+        
+        if event["RequestType"] == "clean":
+            s3 = boto3.resource("s3")
+            for catalog_path in glob.glob(f"{commitlog_directory}/*.db"):
+                if os.path.exists(catalog_path):
+                    try:
+                        os.remove(catalog_path)
+                    finally:
+                        logger.info(f"removed from commitlog: {catalog_path}!")
+                    try:
+                        catalog_tobe_deleted = catalog_path.split("/")[-1]
+                        s3.Object(public_bucket, f"catalogs/{catalog_tobe_deleted}").delete()
+                    finally:
+                        logger.info(f"removed from boto3: {catalog_tobe_deleted}!")            
+        elif event["RequestType"] == "Delete":
             delete_notification(public_bucket)
             for obj in s3.Bucket(public_bucket).objects.filter():
                 s3.Object(public_bucket, obj.key).delete()
@@ -211,11 +226,3 @@ def delete_notification(public_bucket):
         logger.error("There was an error delete_notification to the  bucket")
         logger.error("Error Message: {}".format(error))
         logger.error("Error response: {}".format(error.response))
-
-# the following is useful to make this script executable in both
-# AWS Lambda and any other local environments
-if __name__ == '__main__':
-    # for testing locally you can enter the JWT ID Token here
-    event = {'token':''}
-    context = {'identity': {'cognito_identity_id':'', 'cognito_identity_pool_id':''}}
-    lambda_handler(event, context)
