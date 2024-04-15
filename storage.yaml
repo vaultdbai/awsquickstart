@@ -143,6 +143,11 @@ Resources:
         Fn::ImportValue: !Sub "${ApplicationName}-VPCPrivateSubnet"
 
 Outputs:
+  DataBucketNameArn:
+    Description: Name of the main bucket
+    Value: !Ref DataBucket.Arn
+    Export:
+      Name: !Sub ${ApplicationName}-DataBucket-arn
   DataBucketName:
     Description: Name of the main bucket
     Value: !Ref DataBucket

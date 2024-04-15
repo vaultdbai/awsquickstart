@@ -172,6 +172,30 @@ Resources:
                 Action:
                   - "lambda:InvokeFunction"
                 Resource: "*"
+              - Effect: Allow
+                Action:
+                  - s3:ListMultipartUploadParts
+                  - s3:*Object
+                  - s3:ListBucket
+                Resource:
+                  !Join [""
+                    [
+                      Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket-arn",
+                      "/merge_queue/*"
+                    ]
+                  ]
+              - Effect: Allow
+                Action:
+                  - s3:ListMultipartUploadParts
+                  - s3:*Object
+                  - s3:ListBucket
+                Resource:
+                  !Join [""
+                    [
+                      Fn::ImportValue: !Sub "${ApplicationName}-DataBucket-arn",
+                      "/merged_data/*"
+                    ]
+                  ]
 
   # Assigns the roles to the Identity Pool
   IdentityUserPoolRoleMapping:

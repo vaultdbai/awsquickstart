@@ -114,8 +114,8 @@ def create_sample_database(catalog_name):
         return
     connection = duckdb.connect(test_db_path, False, "vaultdb")
     
-    connection.execute(f"CREATE CONFIG remote AS 's3://{data_store}/{catalog_name}';")
-    connection.execute(f"CREATE CONFIG remote_merge_path AS 's3://{public_bucket}/{catalog_name}';")
+    connection.execute(f"CREATE CONFIG remote AS 's3://{data_store}/merged_data';")
+    connection.execute(f"CREATE CONFIG remote_merge_path AS 's3://{public_bucket}';")
 
     connection.execute(f"CREATE CONFIG application_name AS '{application_name}';")
     user_pool_client_id = os.environ['user_pool_client_id'] if "user_pool_client_id" in os.environ else None
