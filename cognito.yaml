@@ -177,25 +177,12 @@ Resources:
                   - s3:ListMultipartUploadParts
                   - s3:*Object
                   - s3:ListBucket
-                Resource:
-                  !Join [""
-                    [
-                      Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket-arn",
-                      "/merge_queue/*"
-                    ]
-                  ]
+                Resource: !Join ["", [Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket-arn","/merge_queue/*"]]
               - Effect: Allow
                 Action:
-                  - s3:ListMultipartUploadParts
                   - s3:*Object
                   - s3:ListBucket
-                Resource:
-                  !Join [""
-                    [
-                      Fn::ImportValue: !Sub "${ApplicationName}-DataBucket-arn",
-                      "/merged_data/*"
-                    ]
-                  ]
+                Resource: !Join ["", [Fn::ImportValue: !Sub "${ApplicationName}-DataBucket-arn","/merged_data/*"]]
 
   # Assigns the roles to the Identity Pool
   IdentityUserPoolRoleMapping:
@@ -246,6 +233,17 @@ Resources:
                 Action:
                   - "lambda:InvokeFunction"
                 Resource: "*"
+              - Effect: Allow
+                Action:
+                  - s3:ListMultipartUploadParts
+                  - s3:*Object
+                  - s3:ListBucket
+                Resource: !Join ["", [Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket-arn","/merge_queue/*"]]
+              - Effect: Allow
+                Action:
+                  - s3:*Object
+                  - s3:ListBucket
+                Resource: !Join ["", [Fn::ImportValue: !Sub "${ApplicationName}-DataBucket-arn","/merged_data/*"]]
 
   VaultDBUserRole:
     Type: "AWS::IAM::Role"
@@ -286,6 +284,12 @@ Resources:
                 Action:
                   - "lambda:InvokeFunction"
                 Resource: "*"
+              - Effect: Allow
+                Action:
+                  - s3:ListMultipartUploadParts
+                  - s3:*Object
+                  - s3:ListBucket
+                Resource: !Join ["", [Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket-arn","/merge_queue/*"]]
 
   QueryUserPoolGroup:
     Type: AWS::Cognito::UserPoolGroup
