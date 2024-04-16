@@ -8,7 +8,7 @@
 This repository contains the VaultDB ai platform aws quickstart templates.
 
 ## TODO:
-
+***** Create VPC End point that allows all traffic 
 ### 1) Provide Update Button on Website to update and deploy lambda to kick off update to Stack
 ### 2) Use build image instead of tar -xf resources/vaultdb_python312.tar.gz -C /var/lang/lib/python3.12/site-packages/
 
