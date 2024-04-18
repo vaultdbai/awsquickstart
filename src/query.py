@@ -117,26 +117,18 @@ def create_sample_database(catalog_name):
     if catalog_name==application_name:
         connection.execute('CREATE TABLE tbl_ProductSales (ColID int, Product_Category  varchar(64), Product_Name  varchar(64), TotalSales int)')
         connection.execute('CREATE TABLE another_T (col1 INT, col2 INT, col3 INT, col4 INT, col5 INT, col6 INT, col7 INT, col8 INT)')
-        connection.execute("INSERT INTO tbl_ProductSales VALUES (1,'Game','Mobo Game',200),(2,'Game','PKO Game',400),(3,'Fashion','Shirt',500),(4,'Fashion','Shorts',100);")
-        connection.execute("INSERT INTO another_T VALUES (1,2,3,4,5,6,7,8), (11,22,33,44,55,66,77,88), (111,222,333,444,555,666,777,888), (1111,2222,3333,4444,5555,6666,7777,8888)")
     else:
         connection.execute('CREATE TABLE demo (col1 INT, col2 INT, col3 INT, col4 INT, col5 INT, col6 INT, col7 INT, col8 INT)')
-        connection.execute("INSERT INTO demo VALUES (1,2,3,4,5,6,7,8), (11,22,33,44,55,66,77,88), (111,222,333,444,555,666,777,888), (1111,2222,3333,4444,5555,6666,7777,8888)")
         
     connection.execute('COMMIT;')    
     connection.close()
-    # Closing connection to make sure databse file gets written fully before we move it to s3
-    
+    # Closing connection to make sure databse file gets written fully before we move it to s3    
     connection = duckdb.connect(test_db_path, False, "vaultdb")
     configs = connection.execute("select config_name, config_value from vaultdb_configs").fetchall()
     logger.debug(f'configs: {configs}')    
     if not configs:
         raise Exception("Config Data Not found in Database")
-
-    logger.debug(f'Starting to merge newly created database: {catalog_name}')    
-    connection.execute(f"MERGE DATABASE {catalog_name};")    
-    logger.debug(f'Merged Database {catalog_name}')    
-
+        
     s3 = boto3.resource("s3")
     s3.meta.client.upload_file(Filename=f"{commitlog_directory}/{catalog_name}.db", Bucket=public_bucket, Key=f"catalogs/{catalog_name}.db")
     logger.debug(f'copied {catalog_name} database file to s3 ')    

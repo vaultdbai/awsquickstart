@@ -10,10 +10,6 @@ Parameters:
     AllowedPattern: "^[a-z][a-z0-9-]{0,48}[a-z0-9]$"
     Description: Enter the name of your application with no spaces.
 
-  LambdaImageUri:
-    Type: String
-    Default: "440955376164.dkr.ecr.us-east-2.amazonaws.com/vaultdb:lambda"
-
 Resources:
   MergeDataFunction:
     Type: AWS::Lambda::Function
@@ -30,7 +26,7 @@ Resources:
       Role:
         Fn::ImportValue: !Sub "${ApplicationName}-ExecuteRole"
       Code:
-        ImageUri: !Ref LambdaImageUri
+        ImageUri: !Sub "440955376164.dkr.ecr.${AWS::Region}.amazonaws.com/vaultdb:lambda"
       PackageType: Image
       ImageConfig:
         Command: 

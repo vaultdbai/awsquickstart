@@ -38,30 +38,24 @@ def lambda_handler(event, context):
             if not os.path.isfile(db_path):
                 return send_response(event, context, cfnresponse.FAILED, {'error':f"Catalog {database_name} does not exist!"})
                 
-            # Retrieve the object from S3
-            response = s3_client.get_object(Bucket=source_bucket, Key=file_key)            
-            # Read the file content line by line
-            file_content = response['Body'].iter_lines()
-            if not file_content:
-                return send_response(event, context, cfnresponse.FAILED, {'error':"empty file contents!"})
-
             # connect to database
             connection = duckdb.connect(db_path, False, preferred_role, config={'autoinstall_known_extensions' : 'true'})
-            connection.execute(f"PRAGMA disable_data_inheritance;")
-            # Process each line of the file
-            counter = 0
-            for line in file_content:
-                stmt = line.decode('utf-8').strip()
-                if stmt:
-                    logger.info(f'Executing Statement: {line}')
-                    stmt_result = connection.execute(stmt)
-                    counter+=1
-                    logger.info(f'Statement Result: {stmt_result.fetchdf()}')
+            
+            counter = execute(s3_client, source_bucket, file_key.replace("load.sql", "schema.sql"), connection)
+            
+            counter = execute(s3_client, source_bucket, file_key, connection)
 
             if counter:
                 connection.execute(f"PRAGMA enable_data_inheritance;")
                 stmt_result = connection.execute(f"MERGE DATABASE {database_name};")
                 logger.info(f'Statement Result: {stmt_result.fetchdf()}')
+                connection.close()
+                # CLose and reopen to make sure we are not carying data to s3
+                connection = duckdb.connect(db_path, False, "vaultdb")   
+                connection.close()         
+                s3 = boto3.resource("s3")
+                s3.meta.client.upload_file(Filename=db_path, Bucket=public_bucket, Key=f"catalogs/{database_name}.db")
+                logger.debug(f'copied {database_name} database file to s3 ')    
 
             head, tail = os.path.split(file_key)
             logger.info(f'head: {head}')
@@ -86,6 +80,26 @@ def lambda_handler(event, context):
         logger.error(ex)
         return send_response(event, context, cfnresponse.FAILED, {'error':str(ex)})
 
+def execute(s3_client, source_bucket, file_key, connection):
+    # Retrieve the object from S3
+    response = s3_client.get_object(Bucket=source_bucket, Key=file_key)            
+    # Read the file content line by line
+    file_content = response['Body'].iter_lines()
+    if not file_content:
+        return send_response(event, context, cfnresponse.FAILED, {'error':"empty file contents!"})
+
+    connection.execute(f"PRAGMA disable_data_inheritance;")
+    # Process each line of the file
+    counter = 0
+    for line in file_content:
+        stmt = line.decode('utf-8').strip()
+        if stmt:
+            logger.info(f'Executing Statement: {line}')
+            stmt_result = connection.execute(stmt)
+            counter+=1
+            logger.info(f'Statement Result: {stmt_result.fetchdf()}')    
+
+    return counter
 
 def send_response(event, context, result, message):
     if "ResponseURL" in event:

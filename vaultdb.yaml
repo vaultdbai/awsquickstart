@@ -25,10 +25,6 @@ Parameters:
     Default: "vaultdb-web"
     Description: Vaultdb Cloudformation template store. Please do not change unless you have custom templates.
 
-  LambdaImageUri:
-    Type: String
-    Default: "440955376164.dkr.ecr.us-east-2.amazonaws.com/vaultdb:lambda"
-
 Metadata:
   Author: VaultDB.ai
   Url: https://www.vaultdb.ai
@@ -79,7 +75,7 @@ Resources:
         ApplicationName: !Ref AWS::StackName
         PrimarySubnetAZ: !Ref PrimarySubnetAZ
         PrivateSubnetCIDR: !Ref PrivateSubnetCIDR
-
+        
   DataStoreStack:
     Type: AWS::CloudFormation::Stack
     DependsOn: NetworkingStack
@@ -119,6 +115,19 @@ Resources:
         SourceBucketName: !Ref BucketName
         AdminEmail: !Ref AdminEmail
 
+  CleanArtifactStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: CognitoUsersStack
+    Properties:
+      TemplateURL: !Join
+        - ""
+        - - "https://s3.us-east-2.amazonaws.com/"
+          - !Ref BucketName
+          - "/awsquickstart/clean_artifacts.yaml"
+      Parameters:
+        ApplicationName: !Ref AWS::StackName
+        AdminEmail: !Ref AdminEmail
+
   LambdaDeploymentStack:
     Type: AWS::CloudFormation::Stack
     DependsOn: DeployArtifactStack
@@ -130,7 +139,6 @@ Resources:
           - "/awsquickstart/lambda.yaml"
       Parameters:
         ApplicationName: !Ref AWS::StackName
-        LambdaImageUri: !Ref LambdaImageUri
 
   MergeDeploymentStack:
     Type: AWS::CloudFormation::Stack
@@ -143,4 +151,3 @@ Resources:
           - "/awsquickstart/merge-data.yaml"
       Parameters:
         ApplicationName: !Ref AWS::StackName
-        LambdaImageUri: !Ref LambdaImageUri

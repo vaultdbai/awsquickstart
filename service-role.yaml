@@ -104,6 +104,13 @@ Resources:
                   - ec2:RevokeSecurityGroupIngress
                   - ec2:CreateTags
                   - ec2:DeleteTags
+                  - ec2:ReplaceRouteTableAssociation
+                  - ecr:PutLifecyclePolicy
+                  - ecr:DeleteRepository
+                  - ecr:DescribeRepositories
+                  - ecr:CreatePullThroughCacheRule
+                  - ecr:DeletePullThroughCacheRule
+                  - ecr:DescribePullThroughCacheRule
                 Resource: "*"
               - Effect: Allow
                 Action:
@@ -114,6 +121,9 @@ Resources:
                   - ecr:SetRepositoryPolicy
                   - ecr:GetRepositoryPolicy
                   - ecr:InitiateLayerUpload
+                  - ecr:CreateRepository
+                  - iam:DeleteRolePolicy
+                  - iam:DeleteRole
                 Resource: "*"
               - Effect: Allow
                 Action:
