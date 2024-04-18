@@ -48,6 +48,7 @@ def lambda_handler(event, context):
             if counter:
                 connection.execute(f"PRAGMA enable_data_inheritance;")
                 stmt_result = connection.execute(f"MERGE DATABASE {database_name};")
+                stmt_result = connection.execute(f"TRUNCATE DATABASE {database_name};")
                 logger.info(f'Statement Result: {stmt_result.fetchdf()}')
                 connection.close()
                 # CLose and reopen to make sure we are not carying data to s3
