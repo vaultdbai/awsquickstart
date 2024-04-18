@@ -95,6 +95,8 @@ def execute(s3_client, source_bucket, file_key, connection):
         stmt = line.decode('utf-8').strip()
         if stmt:
             logger.info(f'Executing Statement: {line}')
+            if ("CREATE " in stmt and " REPLACE " not in stmt):
+                stmt = stmt.replace("CREATE ", "CREATE OR REPLACE ")
             stmt_result = connection.execute(stmt)
             counter+=1
             logger.info(f'Statement Result: {stmt_result.fetchdf()}')    
