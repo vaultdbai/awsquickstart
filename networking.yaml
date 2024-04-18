@@ -116,6 +116,21 @@ Resources:
       GroupId: !GetAtt DataSecurityGroup.GroupId
 
   S3GatewayEndpoint:
+    # TODO: restrict this to s3 only and see if there is more secure way to access private s3 buckets.
+    Type: "AWS::EC2::VPCEndpoint"
+    Properties:
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action: "*"
+            Resource: "*"
+      VpcId:
+        Fn::ImportValue: !Sub "${ApplicationName}-VPC"
+
+  PrivateGatewayEndpoint:
     Type: "AWS::EC2::VPCEndpoint"
     Properties:
       ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
