@@ -1,0 +1,114 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: VaultDB Lambda funtion to clean resources
+Metadata:
+  Author: VaultDB.ai
+  Url: https://www.vaultdb.ai
+
+Parameters:
+  ApplicationName:
+    Type: String
+    AllowedPattern: "^[a-z][a-z0-9-]{0,48}[a-z0-9]$"
+    Description: Enter the name of your application with no spaces.
+
+  AdminEmail:
+    Description: VaultDB Admin Email for default database user notifications
+    Type: String
+    AllowedPattern: '[^@]+@[^@]+\.[^@]+'
+    Default: support@vaultdb.ai
+
+Resources:
+  CleanUtilFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Tags:
+        - Key: Purpose
+          Value: "VaultDB"
+      Description: Delete database files from EFS and s3
+      FunctionName: !Join ["", [!Ref ApplicationName, "-clean-util"]]
+      Handler: index.lambda_handler
+      MemorySize: 128
+      Runtime: python3.12
+      Role:
+        Fn::ImportValue: "vaultdb-cloudformation-service-role-Arn"
+      Timeout: 240
+      Environment:
+        Variables:
+          application_name: !Sub "${ApplicationName}"
+          admin_email: !Sub "${AdminEmail}"
+          AWS_STS_REGIONAL_ENDPOINTS: "regional"
+          vaultdb_clean_region: !Sub "${AWS::Region}"
+          commitlog_directory: "/mnt/commitlog"
+          HOME: "/tmp"
+          user_pool_id:
+            Fn::ImportValue: !Sub "${ApplicationName}-UserPool"
+          user_pool_client_id:
+            Fn::ImportValue: !Sub "${ApplicationName}-UserPoolClient"
+          identity_pool_id:
+            Fn::ImportValue: !Sub "${ApplicationName}-IdentityPool"
+          public_bucket:
+            Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
+          data_bucket:
+            Fn::ImportValue: !Sub "${ApplicationName}-DataBucket"
+          cloudformation_service_role_Arn:
+            Fn::ImportValue: "vaultdb-cloudformation-service-role-Arn"
+      VpcConfig:
+        SecurityGroupIds:
+          - Fn::ImportValue: !Sub "${ApplicationName}-DataSecurityGroup"
+        SubnetIds:
+          - Fn::ImportValue: !Sub "${ApplicationName}-VPCPrivateSubnet"
+      FileSystemConfigs:
+        - Arn: 
+            Fn::ImportValue: !Sub "${ApplicationName}-EFSAccessPointResource"
+          LocalMountPath: /mnt/commitlog
+      Code:
+        ZipFile: |
+            import boto3
+            import cfnresponse
+            import botocore
+            import os
+            import logging
+            import glob
+
+            logger = logging.getLogger()
+            logger.setLevel(logging.INFO)
+
+            vaultdb_clean_region = os.environ["vaultdb_clean_region"]
+            user_pool_id = os.environ["user_pool_id"]
+            public_bucket = os.environ["public_bucket"]
+            data_bucket = os.environ["data_bucket"]
+            commitlog_directory = os.environ['commitlog_directory'] if "commitlog_directory" in os.environ else "/mnt/commitlog"
+
+            def lambda_handler(event, context):
+                try:
+                    logger.info(f"event: {event}!")
+                    
+                    s3 = boto3.resource("s3")
+                    for catalog_path in glob.glob(f"{commitlog_directory}/*.db"):
+                        if os.path.exists(catalog_path):
+                            try:
+                                os.remove(catalog_path)
+                            finally:
+                                logger.info(f"removed from commitlog: {catalog_path}!")
+                            try:
+                                catalog_tobe_deleted = catalog_path.split("/")[-1]
+                                s3.Object(public_bucket, f"catalogs/{catalog_tobe_deleted}").delete()
+                            finally:
+                                logger.info(f"removed from boto3: {catalog_tobe_deleted}!")            
+                    
+                    return {"result": "success"}
+
+                except Exception as error:
+                    logger.error("Error Message: {}".format(error))
+                    return {"error": str(error)}
+
+Outputs:
+  CleanUtilFunction:
+    Description: VaultDB Clean Util Function
+    Value: !Ref CleanUtilFunction
+    Export:
+      Name: !Sub ${ApplicationName}-CleanUtilFunction
+  CleanUtilFunctionArn:
+    Description: VaultDB Clean Util Function
+    Value: !GetAtt CleanUtilFunction.Arn
+    Export:
+      Name: !Sub ${ApplicationName}-CleanUtilFunction-arn

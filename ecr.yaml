@@ -1,0 +1,68 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: VaultDB Create pass through ECR that only keeps 1 image in store
+
+Parameters:
+  ApplicationName:
+    Type: String
+    AllowedPattern: "^[a-z][a-z0-9-]{0,48}[a-z0-9]$"
+    Description: Enter the name of your application with no spaces.
+
+  VaultdbECRRepoAlias:
+    Type: String
+    Default: "i2q7a2j7"
+    AllowedPattern: "^[a-z][a-z0-9-]{0,48}[a-z0-9]$"
+    Description: Name of the source ECR repository
+
+Metadata:
+  Author: VaultDB.ai
+  Url: https://www.vaultdb.ai
+
+Rules:
+  ApplicationNameIsRequired:
+    Assertions:
+      - AssertDescription: Application Name is required
+        Assert: !Not [!Equals [!Ref ApplicationName, ""]]
+
+Resources:
+  VaultdbEcrRepo:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: vaultdb
+      LifecyclePolicy:
+        LifecyclePolicyText: |
+          {
+            "rules": [
+              {
+                "rulePriority": 1,
+                "description": "Expire images older than 1 days",
+                "selection": {
+                  "tagStatus": "untagged",
+                  "countType": "sinceImagePushed",
+                  "countUnit": "days",
+                  "countNumber": 1
+                },
+                "action": {
+                  "type": "expire"
+                }
+              }
+            ]
+          }
+
+  VaultdbECRPullThroughCacheRule:
+    Type: 'AWS::ECR::PullThroughCacheRule'
+    Properties:
+      EcrRepositoryPrefix: !Ref VaultdbECRRepoAlias
+      UpstreamRegistryUrl: 'public.ecr.aws'
+      UpstreamRegistry: 'ecr-public'
+
+Outputs:
+  VaultdbEcrRepoNameArn:
+    Description: ANR of the VaultdbEcrRepo
+    Value: !GetAtt VaultdbEcrRepo.Arn
+    Export:
+      Name: !Sub ${ApplicationName}-VaultdbEcrRepo-arn
+  VaultdbEcrRepoName:
+    Description: Name of the VaultdbEcrRepo
+    Value: !Ref VaultdbEcrRepo
+    Export:
+      Name: !Sub ${ApplicationName}-VaultdbEcrRepo

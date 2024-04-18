@@ -9,10 +9,6 @@ Parameters:
     Type: String
     AllowedPattern: "^[a-z][a-z0-9-]{0,48}[a-z0-9]$"
     Description: Enter the name of your application with no spaces.
-  
-  LambdaImageUri:
-    Type: String
-    Default: "440955376164.dkr.ecr.us-east-2.amazonaws.com/vaultdb:lambda"
 
 Resources:
   ExecuteRole:
@@ -90,7 +86,7 @@ Resources:
       FunctionName: !Join ["", [!Ref ApplicationName, "-execute-query"]]
       Role: !GetAtt ExecuteRole.Arn
       Code:
-        ImageUri: !Ref LambdaImageUri
+        ImageUri: !Sub "440955376164.dkr.ecr.${AWS::Region}.amazonaws.com/vaultdb:lambda"
       PackageType: Image
       ImageConfig:
         Command: 
