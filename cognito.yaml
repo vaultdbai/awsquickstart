@@ -180,8 +180,12 @@ Resources:
                 Resource: !Join ["", [Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket-arn","/merge_queue/*"]]
               - Effect: Allow
                 Action:
-                  - s3:*Object
                   - s3:ListBucket
+                Resource: 
+                  - Fn::ImportValue: !Sub "${ApplicationName}-DataBucket-arn"
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
                 Resource: !Join ["", [Fn::ImportValue: !Sub "${ApplicationName}-DataBucket-arn","/merged_data/*"]]
 
   # Assigns the roles to the Identity Pool
@@ -241,8 +245,12 @@ Resources:
                 Resource: !Join ["", [Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket-arn","/merge_queue/*"]]
               - Effect: Allow
                 Action:
-                  - s3:*Object
                   - s3:ListBucket
+                Resource: 
+                  - Fn::ImportValue: !Sub "${ApplicationName}-DataBucket-arn"
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
                 Resource: !Join ["", [Fn::ImportValue: !Sub "${ApplicationName}-DataBucket-arn","/merged_data/*"]]
 
   VaultDBUserRole:
