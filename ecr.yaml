@@ -2,12 +2,7 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: VaultDB Create pass through ECR that only keeps 1 image in store
 
 Parameters:
-  ApplicationName:
-    Type: String
-    AllowedPattern: "^[a-z][a-z0-9-]{0,48}[a-z0-9]$"
-    Description: Enter the name of your application with no spaces.
-
-  VaultdbECRRepoAlias:
+  ECRRepoAlias:
     Type: String
     Default: "i2q7a2j7"
     AllowedPattern: "^[a-z][a-z0-9-]{0,48}[a-z0-9]$"
@@ -18,10 +13,10 @@ Metadata:
   Url: https://www.vaultdb.ai
 
 Rules:
-  ApplicationNameIsRequired:
+  ECRRepoAliasIsRequired:
     Assertions:
-      - AssertDescription: Application Name is required
-        Assert: !Not [!Equals [!Ref ApplicationName, ""]]
+      - AssertDescription: ECR Repo Alias is required
+        Assert: !Not [!Equals [!Ref ECRRepoAlias, ""]]
 
 Resources:
   VaultdbEcrRepo:
@@ -60,9 +55,9 @@ Outputs:
     Description: ANR of the VaultdbEcrRepo
     Value: !GetAtt VaultdbEcrRepo.Arn
     Export:
-      Name: !Sub ${ApplicationName}-VaultdbEcrRepo-arn
+      Name: !Sub ${ECRRepoAlias}-VaultdbEcrRepo-arn
   VaultdbEcrRepoName:
     Description: Name of the VaultdbEcrRepo
     Value: !Ref VaultdbEcrRepo
     Export:
-      Name: !Sub ${ApplicationName}-VaultdbEcrRepo
+      Name: !Sub ${ECRRepoAlias}-VaultdbEcrRepo
