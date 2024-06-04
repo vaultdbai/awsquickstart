@@ -8,3 +8,5 @@ fsspec
 python-jose[rsa]
 python-jose[cryptography]
 vauldb
+yfinance
+get-all-tickers
