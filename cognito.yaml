@@ -21,6 +21,13 @@ Resources:
   UserPool:
     Type: "AWS::Cognito::UserPool"
     Properties:
+      AccountRecoverySetting:
+         RecoveryMechanisms:
+          - verified_email
+      AliasAttributes: 
+        - preferred_username
+      AutoVerifiedAttributes: 
+        - email      
       UserPoolName: !Join ["", [!Ref ApplicationName, "-user-pool"]]
       Schema:
         - Name: name
@@ -32,7 +39,7 @@ Resources:
           Mutable: true
           Required: false
       AdminCreateUserConfig:
-        AllowAdminCreateUserOnly: true
+        AllowAdminCreateUserOnly: false
         InviteMessageTemplate:
           EmailMessage:
             !Join [
@@ -62,7 +69,7 @@ Resources:
                 "</html>",
               ],
             ]
-          EmailSubject: "Your temporary password for VaultDB"
+          EmailSubject: "VaultDB: Your temporary password"
       Policies:
         PasswordPolicy:
           MinimumLength: 6

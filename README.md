@@ -8,9 +8,7 @@
 This repository contains the VaultDB ai platform aws quickstart templates.
 
 ## TODO:
-***** Create VPC End point that allows all traffic 
 ### 1) Provide Update Button on Website to update and deploy lambda to kick off update to Stack
-### 2) Use build image instead of tar -xf resources/vaultdb_python312.tar.gz -C /var/lang/lib/python3.12/site-packages/
 
 ## Create Service Role
 
@@ -36,6 +34,50 @@ awsv2 cloudformation update-stack --stack-name vaultdb-service-role --template-b
 ```
 awsv2 cloudformation update-stack --stack-name vaultdb-service-role --template-body https://vaultdb-web.s3.us-east-2.amazonaws.com/awsquickstart/service-role.yaml --capabilities CAPABILITY_NAMED_IAM
 ```
+
+## Create Private ECR
+
+#### [![Launch stack](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?#/stacks/new?stackName=vaultdb-service-role&templateURL=https://vaultdb-web.s3.us-east-2.amazonaws.com/awsquickstart/ecr.yaml)
+
+### AWS CLI Command to Create Cloud Formation Service Role
+
+```
+awsv2 cloudformation create-stack --stack-name vaultdb-service-role --template-body file://ecr.yaml --capabilities CAPABILITY_NAMED_IAM
+```
+#### Use File from s3
+
+```
+awsv2 cloudformation create-stack --stack-name vaultdb-ecr --role-arn "arn:aws:iam::[AWS-ACCOUNT-NUMBER]:role/vaultdb_cloudformation_service_role" --template-body https://vaultdb-web.s3.us-east-2.amazonaws.com/awsquickstart/ecr.yaml --capabilities CAPABILITY_NAMED_IAM
+```
+#### Update ECR
+
+```
+awsv2 cloudformation update-stack --stack-name vaultdb-service-role --template-body file://ecr.yaml --capabilities CAPABILITY_NAMED_IAM
+```
+#### Use File from s3
+
+```
+awsv2 cloudformation update-stack --stack-name vaultdb-service-role --template-body https://vaultdb-web.s3.us-east-2.amazonaws.com/awsquickstart/ecr.yaml --capabilities CAPABILITY_NAMED_IAM
+```
+
+### Push VaultDB Image to your ECR
+#### pull the docker image:
+```
+docker pull public.ecr.aws/i2q7a2j7/vaultdb:lambda
+```
+#### create a target image tag that refers to the source image:
+```
+docker tag vaultdb:lambda [YOUR_AWS_ACCOUNT_ID].dkr.ecr.[AWS-REGION-WHERE-YOU-WANT-TO-DEPLOY-VAULTDB].amazonaws.com/vaultdb:lambda
+```
+#### Authenticate
+```
+aws ecr get-login-password --region [AWS-REGION-WHERE-YOU-WANT-TO-DEPLOY-VAULTDB] | docker login --username AWS --password-stdin [YOUR_AWS_ACCOUNT_ID].dkr.ecr.[AWS-REGION-WHERE-YOU-WANT-TO-DEPLOY-VAULTDB].amazonaws.com
+```
+####  push the image
+```
+docker push [YOUR_AWS_ACCOUNT_ID].dkr.ecr.[AWS-REGION-WHERE-YOU-WANT-TO-DEPLOY-VAULTDB].amazonaws.com/vaultdb:lambda
+```
+
 ## Deploy VaultDB Instance
 
 ### Note: Make sure to pick the vaultdb_cloudformation_service_role

@@ -58,7 +58,7 @@ def lambda_handler(event, context):
         
         if 'RequestType' in event and event['RequestType'] == 'fetch-catalogues':
             if not os.path.isfile(f"{commitlog_directory}/{application_name}.db"):
-                connection = create_sample_database(application_name) # Create Default Database for sample
+                connection = create_sample_database(application_name, preferred_role) # Create Default Database for sample
             catalogues = glob.glob(f"{commitlog_directory}/*.db")
             return {"result":"Success", "data":catalogues}
     
@@ -83,7 +83,7 @@ def lambda_handler(event, context):
             return {"result":"Success", "data":{"result":"empty payload. please check your query."}}
         
         elif 'RequestType' in event and event['RequestType'] == 'create-catalog':
-            connection = create_sample_database(catalog)
+            connection = create_sample_database(catalog, preferred_role)
             return {"result":"Success", "data":catalog}
         
         return {"result":"Error", "message":f"Catalog {catalog} does not exist."}
@@ -96,7 +96,7 @@ def lambda_handler(event, context):
             connection.close()
 
 
-def create_sample_database(catalog_name):
+def create_sample_database(catalog_name, preferred_role):
     test_db_path = f"{commitlog_directory}/{catalog_name}.db"
     if os.path.isfile(test_db_path):
         return
@@ -120,10 +120,12 @@ def create_sample_database(catalog_name):
     else:
         connection.execute('CREATE TABLE demo (col1 INT, col2 INT, col3 INT, col4 INT, col5 INT, col6 INT, col7 INT, col8 INT)')
         
-    connection.execute('COMMIT;')    
+    connection.execute('COMMIT;')
+    if preferred_role.lower()!="vaultdb":
+        connection.execute(f"CREATE ROLE {preferred_role} with SUPERUSER LOGIN;")    
     connection.close()
     # Closing connection to make sure databse file gets written fully before we move it to s3    
-    connection = duckdb.connect(test_db_path, False, "vaultdb")
+    connection = duckdb.connect(test_db_path, False, preferred_role)
     configs = connection.execute("select config_name, config_value from vaultdb_configs").fetchall()
     logger.debug(f'configs: {configs}')    
     if not configs:
