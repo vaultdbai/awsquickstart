@@ -8,3 +8,7 @@ if __name__ == '__main__':
     connection.execute("LOAD parquet")
     connection.execute("INSTALL httpfs")
     connection.execute("LOAD httpfs")
+    connection.execute("INSTALL duckpgq")
+    connection.execute("LOAD duckpgq")
+    connection.execute("INSTALL scrooge")
+    connection.execute("LOAD scrooge")
