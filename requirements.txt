@@ -7,6 +7,6 @@ requests
 fsspec
 python-jose[rsa]
 python-jose[cryptography]
-vauldb
+vaultdb
 yfinance
 get-all-tickers
