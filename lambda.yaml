@@ -86,7 +86,7 @@ Resources:
       FunctionName: !Join ["", [!Ref ApplicationName, "-execute-query"]]
       Role: !GetAtt ExecuteRole.Arn
       Code:
-        ImageUri: !Sub "440955376164.dkr.ecr.${AWS::Region}.amazonaws.com/vaultdb:lambda"
+        ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/vaultdb:lambda"
       PackageType: Image
       ImageConfig:
         Command: 
