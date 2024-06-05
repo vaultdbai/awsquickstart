@@ -23,7 +23,7 @@ Resources:
     Properties:
       AccountRecoverySetting:
          RecoveryMechanisms:
-          - verified_email
+          - Name: verified_email
       AliasAttributes: 
         - preferred_username
       AutoVerifiedAttributes: 
