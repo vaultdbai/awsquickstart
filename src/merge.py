@@ -39,7 +39,7 @@ def lambda_handler(event, context):
                 return send_response(event, context, cfnresponse.FAILED, {'error':f"Catalog {database_name} does not exist!"})
                 
             # connect to database
-            connection = duckdb.connect(db_path, False, preferred_role, config={'autoinstall_known_extensions' : 'true'})
+            connection = duckdb.connect(db_path, False, config={'autoinstall_known_extensions' : 'true'}, role=preferred_role)
             
             counter = execute(s3_client, source_bucket, file_key.replace("load.sql", "schema.sql"), connection)
             
@@ -52,7 +52,7 @@ def lambda_handler(event, context):
                 connection.execute(f"TRUNCATE DATABASE {database_name};")
                 connection.close()
                 # CLose and reopen to make sure we are not carying data to s3
-                connection = duckdb.connect(db_path, False, "vaultdb")   
+                connection = duckdb.connect(db_path, False, role="vaultdb")   
                 connection.close()         
                 s3 = boto3.resource("s3")
                 s3.meta.client.upload_file(Filename=db_path, Bucket=public_bucket, Key=f"catalogs/{database_name}.db")

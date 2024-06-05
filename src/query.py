@@ -71,7 +71,7 @@ def lambda_handler(event, context):
 
         test_db_path = f"{commitlog_directory}/{catalog}.db"
         if os.path.isfile(test_db_path):
-            connection = duckdb.connect(f"{commitlog_directory}/{catalog}.db", True, preferred_role)
+            connection = duckdb.connect(f"{commitlog_directory}/{catalog}.db", True, role=preferred_role)
             if payload.strip():
                 connection.execute(f"PRAGMA enable_data_inheritance;")
                 df = connection.execute(payload).fetchdf()
@@ -100,7 +100,7 @@ def create_sample_database(catalog_name, preferred_role):
     test_db_path = f"{commitlog_directory}/{catalog_name}.db"
     if os.path.isfile(test_db_path):
         return
-    connection = duckdb.connect(test_db_path, False, "vaultdb")
+    connection = duckdb.connect(test_db_path, False, role="vaultdb")
     
     connection.execute(f"CREATE CONFIG remote AS 's3://{data_store}/merged_data';")
     connection.execute(f"CREATE CONFIG remote_merge_path AS 's3://{public_bucket}';")
@@ -125,7 +125,7 @@ def create_sample_database(catalog_name, preferred_role):
         connection.execute(f"CREATE ROLE {preferred_role} with SUPERUSER LOGIN;")    
     connection.close()
     # Closing connection to make sure databse file gets written fully before we move it to s3    
-    connection = duckdb.connect(test_db_path, False, preferred_role)
+    connection = duckdb.connect(test_db_path, False, role=preferred_role)
     configs = connection.execute("select config_name, config_value from vaultdb_configs").fetchall()
     logger.debug(f'configs: {configs}')    
     if not configs:
