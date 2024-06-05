@@ -32,8 +32,7 @@ Resources:
       Handler: index.lambda_handler
       MemorySize: 128
       Runtime: python3.12
-      Role:
-        Fn::ImportValue: "vaultdb-cloudformation-service-role-Arn"
+      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/vaultdb_cloudformation_service_role"
       Timeout: 240
       Environment:
         Variables:
@@ -53,8 +52,7 @@ Resources:
             Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
           data_bucket:
             Fn::ImportValue: !Sub "${ApplicationName}-DataBucket"
-          cloudformation_service_role_Arn:
-            Fn::ImportValue: "vaultdb-cloudformation-service-role-Arn"
+          cloudformation_service_role_Arn: !Sub "arn:aws:iam::${AWS::AccountId}:role/vaultdb_cloudformation_service_role"
       Code:
         ZipFile: |
             import boto3
