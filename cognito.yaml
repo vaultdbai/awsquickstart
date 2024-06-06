@@ -30,6 +30,11 @@ Resources:
       AutoVerifiedAttributes: 
         - email      
       UserPoolName: !Join ["", [!Ref ApplicationName, "-user-pool"]]
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Mutable: false
+          Required: true
       AdminCreateUserConfig:
         AllowAdminCreateUserOnly: false
         InviteMessageTemplate:
