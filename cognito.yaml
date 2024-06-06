@@ -31,14 +31,10 @@ Resources:
         - email      
       UserPoolName: !Join ["", [!Ref ApplicationName, "-user-pool"]]
       Schema:
-        - Name: name
+        - Name: email
           AttributeDataType: String
           Mutable: false
           Required: true
-        - Name: email
-          AttributeDataType: String
-          Mutable: true
-          Required: false
       AdminCreateUserConfig:
         AllowAdminCreateUserOnly: false
         InviteMessageTemplate:
