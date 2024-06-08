@@ -1,9 +1,14 @@
 name: Update Private Lambda Image
 
 on:
+  workflow_call:
+    inputs:
+      aws_region:
+        type: string
   workflow_dispatch:
-#  schedule:
-#    - cron: "0 2 * * *"
+    inputs:
+      aws_region:
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref || '' }}-${{ github.base_ref || '' }}-${{ github.ref != 'refs/heads/master' || github.sha }}
@@ -26,7 +31,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.S3_ID }}
           aws-secret-access-key: ${{ secrets.S3_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: ${{ inputs.aws_region }}
           
       - name: Login to Amazon ECR private
         id: login-ecr
