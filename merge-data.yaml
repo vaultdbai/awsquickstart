@@ -1,0 +1,112 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: VaultDB Lambda function to execute Queries
+Metadata:
+  Author: VaultDB.ai
+  Url: https://www.vaultdb.ai
+
+Parameters:
+  ApplicationName:
+    Type: String
+    AllowedPattern: "^[a-z][a-z0-9-]{0,48}[a-z0-9]$"
+    Description: Enter the name of your application with no spaces.
+
+Resources:
+  MergeDataFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Tags:
+        - Key: Purpose
+          Value: "VaultDB"
+        - Key: Project
+          Value: !Ref ApplicationName
+        - Key: createdBy
+          Value: vaultdb.ai
+      Description: Merge Data into VaultDB Hub
+      FunctionName: !Join ["", [!Ref ApplicationName, "-merge-data"]]
+      Role:
+        Fn::ImportValue: !Sub "${ApplicationName}-ExecuteRole"
+      Code:
+        ImageUri: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/vaultdb:lambda"
+      PackageType: Image
+      ImageConfig:
+        Command: 
+          - merge.lambda_handler
+      Architectures:
+        - x86_64
+      MemorySize: 256
+      Timeout: 120
+      Environment:
+        Variables:
+          application_name: !Sub "${ApplicationName}"
+          AWS_STS_REGIONAL_ENDPOINTS: "regional"
+          commitlog_directory: "/mnt/commitlog"
+          HOME: "/mnt/commitlog"
+          public_bucket:
+            Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
+          data_store:
+            Fn::ImportValue: !Sub "${ApplicationName}-DataBucket"
+          user_pool_id:
+            Fn::ImportValue: !Sub "${ApplicationName}-UserPool"
+          user_pool_client_id:
+            Fn::ImportValue: !Sub "${ApplicationName}-UserPoolClient"
+          identity_pool_id:
+            Fn::ImportValue: !Sub "${ApplicationName}-IdentityPool"
+      VpcConfig:
+        SecurityGroupIds:
+          - Fn::ImportValue: !Sub "${ApplicationName}-DataSecurityGroup"
+        SubnetIds:
+          - Fn::ImportValue: !Sub "${ApplicationName}-VPCPrivateSubnet"
+      FileSystemConfigs:
+        - Arn:
+            Fn::ImportValue: !Sub "${ApplicationName}-EFSAccessPointResource"
+          LocalMountPath: /mnt/commitlog
+
+  S3InvokeLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt MergeDataFunction.Arn
+      Principal: s3.amazonaws.com
+      SourceArn: 
+        Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket-arn"
+
+  ScheduleMergedRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "Scheduled data merge Runs"
+      ScheduleExpression: "cron(0 17 * * ? *)" # Runs every day at 5 PM UTC
+      State: "DISABLED"
+      Targets:
+        - Arn: !GetAtt MergeDataFunction.Arn
+          Id: "UpdateKeysWeekly"
+          Input: '{"RequestType":  "Refresh"}'
+
+  PermissionForEventsToInvokeMergeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref MergeDataFunction
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt MergeDataFunction.Arn
+
+  InvokeDeploymentToConfigureTriggersAndUsers:
+    Type: 'Custom::LambdaTrigger'
+    DependsOn: 
+      - S3InvokeLambdaPermission
+      - ScheduleMergedRule
+      - PermissionForEventsToInvokeMergeLambda
+    Properties:
+      ServiceToken: 
+        Fn::ImportValue: !Sub "${ApplicationName}-DeploymentUtilFunction-arn"
+      LambdaArn: !GetAtt MergeDataFunction.Arn
+
+Outputs:
+  MergeDataFunction:
+    Description: VaultDB Data Merge Function
+    Value: !Ref MergeDataFunction
+    Export:
+      Name: !Sub ${ApplicationName}-MergeDataFunction
+  CLI:
+    Description: Use this command to copy files
+    Value: !Sub |
+      aws lambda invoke --function-name '${ApplicationName}-merge-data' --payload '{ "Bucket": "${ApplicationName}-PublicBucket", "path": "merge_queue" }' lambda-output.txt --cli-binary-format raw-in-base64-out

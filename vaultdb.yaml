@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: VaultDB Infrstructure.
+Description: VaultDB Infrastructure.
 Parameters:
   AdminEmail:
     Description: VaultDB Admin Email for default database user notifications
@@ -22,12 +22,12 @@ Parameters:
 
   BucketName:
     Type: String
-    Default: "vaultdb-hosted-content"
+    Default: "vaultdb-web"
     Description: Vaultdb Cloudformation template store. Please do not change unless you have custom templates.
 
 Metadata:
   Author: VaultDB.ai
-  Url: https://vaultdb.ai
+  Url: https://www.vaultdb.ai
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
@@ -75,7 +75,7 @@ Resources:
         ApplicationName: !Ref AWS::StackName
         PrimarySubnetAZ: !Ref PrimarySubnetAZ
         PrivateSubnetCIDR: !Ref PrivateSubnetCIDR
-
+        
   DataStoreStack:
     Type: AWS::CloudFormation::Stack
     DependsOn: NetworkingStack
@@ -115,6 +115,19 @@ Resources:
         SourceBucketName: !Ref BucketName
         AdminEmail: !Ref AdminEmail
 
+  CleanArtifactStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: CognitoUsersStack
+    Properties:
+      TemplateURL: !Join
+        - ""
+        - - "https://s3.us-east-2.amazonaws.com/"
+          - !Ref BucketName
+          - "/awsquickstart/clean_artifacts.yaml"
+      Parameters:
+        ApplicationName: !Ref AWS::StackName
+        AdminEmail: !Ref AdminEmail
+
   LambdaDeploymentStack:
     Type: AWS::CloudFormation::Stack
     DependsOn: DeployArtifactStack
@@ -124,5 +137,17 @@ Resources:
         - - "https://s3.us-east-2.amazonaws.com/"
           - !Ref BucketName
           - "/awsquickstart/lambda.yaml"
+      Parameters:
+        ApplicationName: !Ref AWS::StackName
+
+  MergeDeploymentStack:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: LambdaDeploymentStack
+    Properties:
+      TemplateURL: !Join
+        - ""
+        - - "https://s3.us-east-2.amazonaws.com/"
+          - !Ref BucketName
+          - "/awsquickstart/merge-data.yaml"
       Parameters:
         ApplicationName: !Ref AWS::StackName

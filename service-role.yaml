@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: IAM service role for cloud formation
 Metadata:
   Author: VaultDB.ai
-  Url: https://vaultdb.ai
+  Url: https://www.vaultdb.ai
 Resources:
   ServiceRole:
     Type: AWS::IAM::Role
@@ -104,6 +104,26 @@ Resources:
                   - ec2:RevokeSecurityGroupIngress
                   - ec2:CreateTags
                   - ec2:DeleteTags
+                  - ec2:ReplaceRouteTableAssociation
+                  - ecr:PutLifecyclePolicy
+                  - ecr:DeleteRepository
+                  - ecr:DescribeRepositories
+                  - ecr:CreatePullThroughCacheRule
+                  - ecr:DeletePullThroughCacheRule
+                  - ecr:DescribePullThroughCacheRule
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - ecr-public:GetAuthorizationToken
+                  - sts:GetServiceBearerToken
+                  - ecr:BatchGetImage
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:SetRepositoryPolicy
+                  - ecr:GetRepositoryPolicy
+                  - ecr:InitiateLayerUpload
+                  - ecr:CreateRepository
+                  - iam:DeleteRolePolicy
+                  - iam:DeleteRole
                 Resource: "*"
               - Effect: Allow
                 Action:
@@ -116,6 +136,7 @@ Resources:
                   - elasticfilesystem:DescribeAccessPoints
                   - elasticfilesystem:PutBackupPolicy
                   - elasticfilesystem:DescribeMountTargetSecurityGroups
+                  - elasticfilesystem:TagResource
                 Resource: "*"
               - Effect: Allow
                 Action:
@@ -125,6 +146,7 @@ Resources:
                 Resource: "*"
               - Effect: Allow
                 Action:
+                  - cognito-idp:AdminGetUser
                   - cognito-idp:DescribeUserPool
                   - cognito-idp:ListTagsForResource
                   - cognito-idp:DescribeUserPoolClient
@@ -136,6 +158,7 @@ Resources:
                   - cognito-idp:AdminCreateUser
                   - cognito-idp:AdminSetUserPassword
                   - cognito-idp:AdminAddUserToGroup
+                  - cognito-idp:AdminListGroupsForUser
                   - cognito-identity:CreateIdentityPool
                   - cognito-identity:DeleteIdentityPool
                   - cognito-identity:DescribeIdentityPool
@@ -174,7 +197,9 @@ Resources:
                 Action:
                   - s3:CreateBucket
                   - s3:GetBucketPolicy
+                  - s3:GetBucketCors
                   - s3:DeleteBucket
+                  - s3:DeleteBucketCors
                   - s3:DeleteBucketPolicy
                   - s3:PutEncryptionConfiguration
                   - s3:GetEncryptionConfiguration
@@ -185,12 +210,15 @@ Resources:
                   - s3:CreateAccessPoint
                   - s3:PutBucketLogging
                   - s3:PutBucketPolicy
+                  - s3:PutBucketCors
                   - S3:PutBucketWebsite
                   - s3:PutBucketTagging
                   - s3:PutLifecycleConfiguration
                   - s3:ListMultipartUploadParts
                   - s3:*Object
                   - s3:ListBucket
+                  - s3:GetBucketNotification
+                  - s3:PutBucketNotification
                 Resource: "*"
               - Effect: Allow
                 Action:
@@ -254,16 +282,10 @@ Resources:
               - Effect: Allow
                 Action:
                   - ec2:DeleteSubnet
-                Resource: "arn:aws:ec2:*:*:subnet/*"
-                Condition:
-                  StringEquals:
-                    "ec2:ResourceTag/Purpose": "VaultDB"
-              - Effect: Allow
-                Action:
                   - ec2:DeleteRouteTable
                   - ec2:ReplaceRoute
                   - ec2:DeleteRoute
-                Resource: "arn:aws:ec2:*:*:route-table/*"
+                Resource: "*"
                 Condition:
                   StringEquals:
                     "ec2:ResourceTag/Purpose": "VaultDB"

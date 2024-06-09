@@ -1,0 +1,52 @@
+name: Update Private Lambda Image
+
+on:
+  workflow_call:
+    inputs:
+      aws_region:
+        type: string
+  workflow_dispatch:
+    inputs:
+      aws_region:
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref || '' }}-${{ github.base_ref || '' }}-${{ github.ref != 'refs/heads/master' || github.sha }}
+  cancel-in-progress: true
+
+env:
+  GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+jobs:
+  Deploy:
+    name: Deploy Vaultdb Analytics and Datalake
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Configure AWS local region Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.S3_ID }}
+          aws-secret-access-key: ${{ secrets.S3_KEY }}
+          aws-region: ${{ inputs.aws_region }}
+          
+      - name: Login to Amazon ECR private
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Push image to private Amazon ECR
+        id: push-private-image
+        env:
+          REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          REPOSITORY: "vaultdb"
+          IMAGE_TAG: lambda
+        run: |
+          docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
+          docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+
+      - name: Log out of Amazon ECR
+        if: always()
+        run: docker logout ${{ steps.login-ecr.outputs.registry }}

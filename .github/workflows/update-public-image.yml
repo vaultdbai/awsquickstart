@@ -1,0 +1,52 @@
+name: Update public Lambda Image
+
+on:
+  workflow_dispatch:
+#  schedule:
+#    - cron: "0 2 * * *"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref || '' }}-${{ github.base_ref || '' }}-${{ github.ref != 'refs/heads/master' || github.sha }}
+  cancel-in-progress: true
+
+env:
+  GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+jobs:
+  Deploy:
+    name: Deploy Vaultdb Analytics and Datalake
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.S3_ID }}
+          aws-secret-access-key: ${{ secrets.S3_KEY }}
+          aws-region: us-east-1
+          role-to-assume: arn:aws:iam::440955376164:role/vaultdb-publish-to-ecr
+          # ECR Public can only be logged into from the us-east-1 region. In the aws-actions/configure-aws-credentials action, the aws-region input must be us-east-1
+          
+      - name: Login to Amazon ECR Public
+        id: login-ecr-public
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: public
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          REGISTRY: ${{ steps.login-ecr-public.outputs.registry }}
+          REGISTRY_ALIAS: "i2q7a2j7"
+          REPOSITORY: "vaultdb"
+          IMAGE_TAG: lambda
+        run: |
+          docker build -t $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG .
+          docker push $REGISTRY/$REGISTRY_ALIAS/$REPOSITORY:$IMAGE_TAG
+
+      - name: Log out of Amazon ECR
+        if: always()
+        run: docker logout ${{ steps.login-ecr-public.outputs.registry }}

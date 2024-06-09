@@ -1,0 +1,38 @@
+{
+	"name": "VaultDB-QuickStart",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "quickstart",
+	"workspaceFolder": "/workspace",
+	// Use this environment variable if you need to bind mount your local source code into a new container.
+	"remoteEnv": {
+		"LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}",
+		"AWS_DEFAULT_REGION": "${localEnv:AWS_DEFAULT_REGION}",		
+		"AWS_ACCESS_KEY_ID": "${localEnv:AWS_ACCESS_KEY_ID}",
+		"AWS_SECRET_ACCESS_KEY": "${localEnv:AWS_SECRET_ACCESS_KEY}",
+		"commitlog_directory":"/efs"
+	},
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"terminal.integrated.profiles.linux": {
+					"bash": {
+						"path": "/bin/bash"
+					}
+				},
+				"terminal.integrated.defaultProfile.linux": "bash",
+				"python.languageServer": "Pylance"
+			},
+			// Add the IDs of extensions you want installed when the container is created.
+			"extensions": ["ms-python.python", "amazonwebservices.aws-toolkit-vscode"]			
+		}
+	},
+	
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	//"forwardPorts": [3000, 80, 8080, 9042],
+
+	// Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
+	"remoteUser": "vaultdb",
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	"postCreateCommand": "pip install -r /workspace/sample/python/requirements.txt"
+}

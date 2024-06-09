@@ -2,7 +2,7 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: VPC Nested stack
 Metadata:
   Author: VaultDB.ai
-  Url: https://vaultdb.ai
+  Url: https://www.vaultdb.ai
   AWS::CloudFormation::Interface:
     ParameterGroups:
       - Label:
@@ -52,6 +52,8 @@ Resources:
       Tags:
         - Key: Purpose
           Value: "VaultDB"
+        - Key: Project
+          Value: !Ref ApplicationName
         - Key: Name
           Value: !Join
             - ""
@@ -66,6 +68,8 @@ Resources:
       Tags:
         - Key: Purpose
           Value: "VaultDB"
+        - Key: Project
+          Value: !Ref ApplicationName
         - Key: Name
           Value: !Join
             - ""
@@ -111,22 +115,45 @@ Resources:
       SourceSecurityGroupId: !GetAtt DataSecurityGroup.GroupId
       GroupId: !GetAtt DataSecurityGroup.GroupId
 
-  S3GatewayEndpoint:
+  PrivateGatewayEndpoint:
     Type: "AWS::EC2::VPCEndpoint"
     Properties:
       ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
-      PolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal: "*"
-            Action:
-              - "s3:*"
-            Resource: "*"
       VpcId:
         Fn::ImportValue: !Sub "${ApplicationName}-VPC"
       RouteTableIds:
         - !Ref PrivateRouteTable
+
+  S3RouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Fn::ImportValue: !Sub "${ApplicationName}-VPC"
+      Tags:
+        - Key: Purpose
+          Value: "VaultDB"
+        - Key: Project
+          Value: !Ref ApplicationName
+        - Key: Name
+          Value: !Join
+            - ""
+            - - "vaultdb-vpc-s3-Routes-"
+              - !Ref ApplicationName
+
+  S3SubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref S3RouteTable
+      SubnetId: !Ref VPCPrivateSubnetA
+
+  S3GatewayEndpoint:
+    Type: "AWS::EC2::VPCEndpoint"
+    Properties:
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
+      VpcId:
+        Fn::ImportValue: !Sub "${ApplicationName}-VPC"
+      RouteTableIds:
+        - !Ref S3RouteTable
 
 Outputs:
   PrivateSubnet:

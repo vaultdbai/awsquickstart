@@ -9,7 +9,7 @@ Parameters:
 
 Metadata:
   Author: VaultDB.ai
-  Url: https://vaultdb.ai
+  Url: https://www.vaultdb.ai
 
 Rules:
   ApplicationNameIsRequired:
@@ -26,6 +26,10 @@ Resources:
       Tags:
         - Key: Purpose
           Value: "VaultDB"
+        - Key: Project
+          Value: !Ref ApplicationName
+        - Key: createdBy
+          Value: vaultdb.ai
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -59,6 +63,10 @@ Resources:
       Tags:
         - Key: Purpose
           Value: "VaultDB"
+        - Key: Project
+          Value: !Ref ApplicationName
+        - Key: createdBy
+          Value: vaultdb.ai
       BucketEncryption:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
@@ -87,11 +95,11 @@ Resources:
             Principal: "*"
             Action: "s3:ListBucket"
             Resource: !Sub arn:aws:s3:::${PublicBucket}
-          - Sid: AddPutObject
-            Effect: Allow
-            Principal: "*"
-            Action: "s3:PutBucket"
-            Resource: !Sub arn:aws:s3:::${PublicBucket}
+          #- Sid: AddPutObject
+          #  Effect: Allow
+          #  Principal: "*"
+          #  Action: "s3:PutBucket"
+          #  Resource: !Sub arn:aws:s3:::${PublicBucket}
 
   EFSFileSystem:
     Type: AWS::EFS::FileSystem
@@ -111,6 +119,20 @@ Resources:
         - Key: createdBy
           Value: vaultdb.ai
 
+  EFSAccessPointResource:
+    Type: AWS::EFS::AccessPoint
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      PosixUser:
+        Uid: 1001
+        Gid: 1001
+      RootDirectory:
+        CreationInfo:
+          OwnerGid: 1001
+          OwnerUid: 1001
+          Permissions: 770
+        Path: /commitlog
+
   EFSMountTarget:
     Type: AWS::EFS::MountTarget
     Properties:
@@ -121,11 +143,21 @@ Resources:
         Fn::ImportValue: !Sub "${ApplicationName}-VPCPrivateSubnet"
 
 Outputs:
+  DataBucketNameArn:
+    Description: ANR of the main bucket
+    Value: !GetAtt DataBucket.Arn
+    Export:
+      Name: !Sub ${ApplicationName}-DataBucket-arn
   DataBucketName:
     Description: Name of the main bucket
     Value: !Ref DataBucket
     Export:
       Name: !Sub ${ApplicationName}-DataBucket
+  PublicBucketArn:
+    Description: Name of the public bucket
+    Value: !GetAtt PublicBucket.Arn
+    Export:
+      Name: !Sub ${ApplicationName}-PublicBucket-arn
   PublicBucket:
     Description: Name of the public bucket
     Value: !Ref PublicBucket
@@ -146,3 +178,8 @@ Outputs:
     Value: !Ref EFSMountTarget
     Export:
       Name: !Sub ${ApplicationName}-EFSMountTarget
+  EFSAccessPointResource:
+    Description: EFS Access Point Resource
+    Value: !GetAtt EFSAccessPointResource.Arn
+    Export:
+      Name: !Sub ${ApplicationName}-EFSAccessPointResource

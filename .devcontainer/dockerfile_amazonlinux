@@ -1,0 +1,50 @@
+ARG VARIANT="2023-minimal"
+FROM --platform=linux/x86_64 public.ecr.aws/amazonlinux/amazonlinux:${VARIANT} as base
+# FROM public.ecr.aws/lambda/python:3.9
+# FROM public.ecr.aws/lambda/python:3.12-x86_64
+
+ARG USER_UID=$USER_UID
+ARG USER_GID=$USER_GID
+ARG USER_NAME=$USER_NAME
+ARG PYTHON_VERSION=$PYTHON_VERSION
+
+USER root
+
+RUN dnf install -y ${PYTHON_VERSION} ${PYTHON_VERSION}-devel
+
+RUN dnf install -y tar gzip shadow-utils git
+
+RUN pip3 install virtualenv, ipykernel
+
+# Add Tini
+ENV TINI_VERSION v0.19.0
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
+RUN chmod +x /tini
+
+# explicitly set user/group IDs
+RUN groupadd -r ${USER_NAME} --gid=${USER_GID} && \
+	useradd -r -g ${USER_NAME} --uid=${USER_UID} ${USER_NAME}
+
+RUN echo 'root:vaultdb!' | chpasswd
+
+RUN mkdir -p /home/${USER_NAME} \
+    && mkdir -p /efs \
+    && chown -R ${USER_NAME} /home/${USER_NAME} \
+    && chown -R ${USER_NAME} /efs		
+
+USER ${USER_NAME}
+
+WORKDIR /home/${USER_NAME}
+
+RUN mkdir -p /home/${USER_NAME}/.vscode-server/extensions
+RUN mkdir -p /home/${USER_NAME}/.vscode-server-insiders/extensions
+
+# activating environment
+RUN cd /home/${USER_NAME} && virtualenv env
+
+ENV VIRTUAL_ENV /home/${USER_NAME}/env
+ENV PATH /home/${USER_NAME}/env/bin:$PATH
+
+ENTRYPOINT ["/tini", "--"]
+# ENTRYPOINT ["handler.lambda_handler", "--"]
+# CMD ["handler.lambda_handler"]

@@ -13,7 +13,7 @@ Parameters:
 
 Metadata:
   Author: VaultDB.ai
-  Url: https://vaultdb.ai
+  Url: https://www.vaultdb.ai
 
 Resources:
   # Creates a user pool in cognito for your app to auth against
@@ -21,18 +21,22 @@ Resources:
   UserPool:
     Type: "AWS::Cognito::UserPool"
     Properties:
+      AccountRecoverySetting:
+         RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      AliasAttributes: 
+        - preferred_username
+      AutoVerifiedAttributes: 
+        - email      
       UserPoolName: !Join ["", [!Ref ApplicationName, "-user-pool"]]
       Schema:
-        - Name: name
+        - Name: email
           AttributeDataType: String
           Mutable: false
           Required: true
-        - Name: email
-          AttributeDataType: String
-          Mutable: true
-          Required: false
       AdminCreateUserConfig:
-        AllowAdminCreateUserOnly: true
+        AllowAdminCreateUserOnly: false
         InviteMessageTemplate:
           EmailMessage:
             !Join [
@@ -62,7 +66,7 @@ Resources:
                 "</html>",
               ],
             ]
-          EmailSubject: "Your temporary password for VaultDB"
+          EmailSubject: "VaultDB: Your temporary password"
       Policies:
         PasswordPolicy:
           MinimumLength: 6
@@ -71,6 +75,7 @@ Resources:
           RequireSymbols: false
           RequireUppercase: false
           TemporaryPasswordValidityDays: 90
+
   # Creates a User Pool Client to be used by the identity pool
   UserPoolClient:
     Type: "AWS::Cognito::UserPoolClient"
@@ -79,6 +84,7 @@ Resources:
       ClientName: !Join ["", [!Ref ApplicationName, "-client"]]
       GenerateSecret: false
       UserPoolId: !Ref UserPool
+      ExplicitAuthFlows:  ['ALLOW_CUSTOM_AUTH', 'ALLOW_USER_SRP_AUTH', 'ALLOW_REFRESH_TOKEN_AUTH', 'ALLOW_USER_PASSWORD_AUTH']
 
   # Creates a federeated Identity pool
   IdentityPool:
@@ -99,6 +105,10 @@ Resources:
       Tags:
         - Key: Purpose
           Value: "VaultDB"
+        - Key: Project
+          Value: !Ref ApplicationName
+        - Key: createdBy
+          Value: vaultdb.ai
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -133,6 +143,10 @@ Resources:
       Tags:
         - Key: Purpose
           Value: "VaultDB"
+        - Key: Project
+          Value: !Ref ApplicationName
+        - Key: createdBy
+          Value: vaultdb.ai
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -162,6 +176,21 @@ Resources:
                 Action:
                   - "lambda:InvokeFunction"
                 Resource: "*"
+              - Effect: Allow
+                Action:
+                  - s3:ListMultipartUploadParts
+                  - s3:*Object
+                  - s3:ListBucket
+                Resource: !Join ["", [Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket-arn","/merge_queue/*"]]
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource: 
+                  - Fn::ImportValue: !Sub "${ApplicationName}-DataBucket-arn"
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource: !Join ["", [Fn::ImportValue: !Sub "${ApplicationName}-DataBucket-arn","/merged_data/*"]]
 
   # Assigns the roles to the Identity Pool
   IdentityUserPoolRoleMapping:
@@ -179,6 +208,10 @@ Resources:
       Tags:
         - Key: Purpose
           Value: "VaultDB"
+        - Key: Project
+          Value: !Ref ApplicationName
+        - Key: createdBy
+          Value: vaultdb.ai
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -208,6 +241,21 @@ Resources:
                 Action:
                   - "lambda:InvokeFunction"
                 Resource: "*"
+              - Effect: Allow
+                Action:
+                  - s3:ListMultipartUploadParts
+                  - s3:*Object
+                  - s3:ListBucket
+                Resource: !Join ["", [Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket-arn","/merge_queue/*"]]
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource: 
+                  - Fn::ImportValue: !Sub "${ApplicationName}-DataBucket-arn"
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource: !Join ["", [Fn::ImportValue: !Sub "${ApplicationName}-DataBucket-arn","/merged_data/*"]]
 
   VaultDBUserRole:
     Type: "AWS::IAM::Role"
@@ -216,6 +264,10 @@ Resources:
       Tags:
         - Key: Purpose
           Value: "VaultDB"
+        - Key: Project
+          Value: !Ref ApplicationName
+        - Key: createdBy
+          Value: vaultdb.ai
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -244,6 +296,12 @@ Resources:
                 Action:
                   - "lambda:InvokeFunction"
                 Resource: "*"
+              - Effect: Allow
+                Action:
+                  - s3:ListMultipartUploadParts
+                  - s3:*Object
+                  - s3:ListBucket
+                Resource: !Join ["", [Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket-arn","/merge_queue/*"]]
 
   QueryUserPoolGroup:
     Type: AWS::Cognito::UserPoolGroup
