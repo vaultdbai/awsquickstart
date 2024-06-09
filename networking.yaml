@@ -115,6 +115,15 @@ Resources:
       SourceSecurityGroupId: !GetAtt DataSecurityGroup.GroupId
       GroupId: !GetAtt DataSecurityGroup.GroupId
 
+  HttpInboundRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: 80
+      ToPort: 80
+      SourceSecurityGroupId: !GetAtt DataSecurityGroup.GroupId
+      GroupId: !GetAtt DataSecurityGroup.GroupId
+
   PrivateGatewayEndpoint:
     Type: "AWS::EC2::VPCEndpoint"
     Properties:
@@ -123,37 +132,6 @@ Resources:
         Fn::ImportValue: !Sub "${ApplicationName}-VPC"
       RouteTableIds:
         - !Ref PrivateRouteTable
-
-  S3RouteTable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId:
-        Fn::ImportValue: !Sub "${ApplicationName}-VPC"
-      Tags:
-        - Key: Purpose
-          Value: "VaultDB"
-        - Key: Project
-          Value: !Ref ApplicationName
-        - Key: Name
-          Value: !Join
-            - ""
-            - - "vaultdb-vpc-s3-Routes-"
-              - !Ref ApplicationName
-
-  S3SubnetARouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref S3RouteTable
-      SubnetId: !Ref VPCPrivateSubnetA
-
-  S3GatewayEndpoint:
-    Type: "AWS::EC2::VPCEndpoint"
-    Properties:
-      ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
-      VpcId:
-        Fn::ImportValue: !Sub "${ApplicationName}-VPC"
-      RouteTableIds:
-        - !Ref S3RouteTable
 
 Outputs:
   PrivateSubnet:
