@@ -18,6 +18,9 @@ RUN tar -xf /tmp/vaultdb_python312.tar.gz -C /var/lang/lib/python3.12/site-packa
 RUN rm -rf /tmp/vaultdb_python312.tar.gz
 RUN dnf remove -y tar gzip
 
+ENV TZ=America/New_York
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
 # Install extensions
 # RUN python ${LAMBDA_TASK_ROOT}/prepare.py
 
