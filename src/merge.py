@@ -95,8 +95,10 @@ def execute(s3_client, source_bucket, file_key, connection):
     for line in file_content:
         stmt = line.decode('utf-8').strip()
         if stmt:
-            logger.info(f'Executing Statement: {line}')
-            if ("CREATE " in stmt and " REPLACE " not in stmt):
+            logger.info(f'Executing Statement: {line}')             
+            if ("CREATE SCHEMA" in stmt and "IF NOT EXISTS" not in stmt and "ON CONFLICT" not in stmt):
+                stmt = stmt.replace(";", " IF NOT EXISTS;")
+            elif ("CREATE " in stmt and " REPLACE " not in stmt):
                 stmt = stmt.replace("CREATE ", "CREATE OR REPLACE ")
             stmt_result = connection.execute(stmt)
             counter+=1

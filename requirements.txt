@@ -7,5 +7,3 @@ requests
 fsspec
 python-jose[rsa]
 python-jose[cryptography]
-yfinance
-get-all-tickers
