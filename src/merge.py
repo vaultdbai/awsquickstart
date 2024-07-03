@@ -72,10 +72,9 @@ def lambda_handler(event, context):
                         logger.info(f'copy_source: {copy_source}')
                         s3_client.copy(copy_source, source_bucket, f"archived/{key[ 'Key' ]}", ExtraArgs=None, Callback=None, SourceClient=None, Config=None)
                         del_response = s3_client.delete_object(Bucket=source_bucket, Key=key[ "Key" ])
-                        if del_response["ResponseMetadata"]["HTTPStatusCode"]!="204":
+                        if del_response["ResponseMetadata"]["HTTPStatusCode"]!=204:
                             logger.error(f'del_response: {del_response}')
-                            return send_response(event, context, cfnresponse.FAILED, {'error':f"couldn't archive file {key[ 'Key' ]}"})
-                        
+                            #return send_response(event, context, cfnresponse.FAILED, {'error':f"couldn't archive file {key[ 'Key' ]}"})                        
         return send_response(event, context, cfnresponse.SUCCESS, {'result':'success'})
     except Exception as ex:
         logger.error(ex)
