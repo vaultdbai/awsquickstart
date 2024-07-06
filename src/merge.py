@@ -29,7 +29,7 @@ def lambda_handler(event, context):
             logger.info(f'source_bucket: {source_bucket}')
             file_key = record['s3']['object']['key']
             logger.info(f'file_key: {file_key}')
-            preferred_role = file_key.split('/')[1]    
+            preferred_role = file_key.split('/')[-4]    
             logger.info(f'preferred_role: {preferred_role}')
             database_name = file_key.split('/')[-2]
             logger.info(f'database_name: {database_name}')
