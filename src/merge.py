@@ -6,6 +6,8 @@ import json
 import duckdb
 import boto3
 
+import tracemalloc
+
 # Set up the logger
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG) # Very verbose
@@ -18,6 +20,9 @@ app_client_id = os.environ['user_pool_client_id'] if "user_pool_client_id" in os
 
 
 def force_merge(preferred_role="vaultdb"):
+    # starting the monitoring
+    tracemalloc.start()
+    logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")
     # Create an S3 client
     s3_client = boto3.client("s3")
 
@@ -32,6 +37,9 @@ def force_merge(preferred_role="vaultdb"):
         if "CommonPrefixes" in page:
             for prefix in page["CommonPrefixes"]:
                 folder_name = prefix["Prefix"][:-1]  # Remove trailing slash
+                logger.debug(f'folder: {folder_name}')
+                logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")
+                
                 # Define the payload to send to the target Lambda (optional)
                 database_paginator = s3_client.get_paginator("list_objects_v2")
                 database_page_iterator = database_paginator.paginate(
@@ -43,11 +51,16 @@ def force_merge(preferred_role="vaultdb"):
                             file_key = database_prefix["Prefix"][:-1]  # Remove trailing slash
                             database_name = file_key.split('/')[-1]  # Remove trailing slash                            
                             db_path = f"{commitlog_directory}/{database_name}.db"                            
-                            
+                            logger.debug(f'file_key: {file_key}')
+                            logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
                             if not os.path.isfile(db_path):
-                                return send_response(event, context, cfnresponse.FAILED, {'error':f"Catalog {database_name} does not exist!"})
+                                import vaultdb
+                                vaultdb.clone("vaultdb","test123", database_name, path=commitlog_directory, aws_region="us-east-1")
+                                #return send_response(event, context, cfnresponse.FAILED, {'error':f"Catalog {database_name} does not exist!"})
                             
+                            logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
                             merge_database(public_bucket, f"{file_key}/load.sql", preferred_role, database_name, db_path)
+                            logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
                             
     return send_response(event, context, cfnresponse.SUCCESS, {'result':'success'})
 
@@ -70,29 +83,42 @@ def lambda_handler(event, context):
                     return send_response(event, context, cfnresponse.FAILED, {'error':f"Catalog {database_name} does not exist!"})
                 
                 merge_database(source_bucket, file_key, preferred_role, database_name, db_path)
-
-        return force_merge()
+        else:
+            return force_merge()
 
     except Exception as ex:
         logger.error(ex)
         return send_response(event, context, cfnresponse.FAILED, {'error':str(ex)})
 
 def merge_database(source_bucket, file_key, preferred_role, database_name, db_path):
+
+    logger.debug(f'source_bucket: {source_bucket}')
+    logger.debug(f'file_key: {file_key}')
+    logger.debug(f'preferred_role: {preferred_role}')
+    logger.debug(f'database_name: {database_name}')
+    logger.debug(f'db_path: {db_path}')
+
     # connect to database
     connection = duckdb.connect(db_path, False, config={'autoinstall_known_extensions' : 'true'}, role=preferred_role)
+    logger.debug('connection opened')
     
     try:
         # Create a Boto3 S3 client
         s3_client = boto3.client('s3')        
         counter = execute(s3_client, source_bucket, file_key.replace("load.sql", "schema.sql"), connection)
+        logger.debug('schema executed')
         
         counter = execute(s3_client, source_bucket, file_key, connection)
+        logger.debug('load executed')
 
         if counter:
             connection.execute(f"PRAGMA enable_data_inheritance;")
-            stmt_result = connection.execute(f"MERGE DATABASE {database_name};")
-            logger.info(f'Statement Result: {stmt_result.fetchdf()}')
+            connection.execute(f"MERGE DATABASE {database_name};")
+            logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
+            logger.debug('merge executed')
             connection.execute(f"TRUNCATE DATABASE {database_name};")
+            logger.debug('data truncated')
+            logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
             
         head, tail = os.path.split(file_key)
         logger.info(f'head: {head}')
@@ -106,19 +132,27 @@ def merge_database(source_bucket, file_key, preferred_role, database_name, db_pa
                         'Key': key[ "Key" ]
                         }
                     logger.info(f'copy_source: {copy_source}')
+                    logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
                     s3_client.copy(copy_source, source_bucket, f"archived/{key[ 'Key' ]}", ExtraArgs=None, Callback=None, SourceClient=None, Config=None)
+                    logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
                     del_response = s3_client.delete_object(Bucket=source_bucket, Key=key[ "Key" ])
                     if del_response["ResponseMetadata"]["HTTPStatusCode"]!=204:
                         logger.error(f'del_response: {del_response}')
                         #return send_response(event, context, cfnresponse.FAILED, {'error':f"couldn't archive file {key[ 'Key' ]}"})     
-    finally:
+        logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
         connection.close()
         # CLose and reopen to make sure we are not carying data to s3
         connection = duckdb.connect(db_path, False, role=preferred_role)   
         connection.close()
+        logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
         s3 = boto3.resource("s3")
         s3.meta.client.upload_file(Filename=db_path, Bucket=public_bucket, Key=f"catalogs/{database_name}.db")
         logger.debug(f'copied {database_name} database file to s3 ')            
+        logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
+    except Exception as ex:
+        logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
+        logger.error(ex)
+        raise
                                                
 def execute(s3_client, source_bucket, file_key, connection):
     # Retrieve the object from S3
@@ -157,7 +191,7 @@ def send_response(event, context, result, message):
 # AWS Lambda and any other local environments
 if __name__ == '__main__':
     # for testing locally you can enter the JWT ID Token here
-    event = {'token':''}
+    event = {'Records': [{'eventVersion': '2.1', 'eventSource': 'aws:s3', 'awsRegion': 'us-east-2', 'eventTime': '2024-04-18T22:40:20.133Z', 'eventName': 'ObjectCreated:CompleteMultipartUpload', 'userIdentity': {'principalId': 'AWS:AROAWNKX5CISM44TJDRCX:CognitoIdentityCredentials'}, 'requestParameters': {'sourceIPAddress': '67.84.103.238'}, 'responseElements': {'x-amz-request-id': '81G2K850C473HHHY', 'x-amz-id-2': 'oyi6lFHMK86UMhcg2+XqvSgTBC7kTPUmcHsF0/NGKvVdikBD4x6AmqZLLqO3UPAdjcdqsEOnBrACSaQVefsHXa7EqJaniNYj'}, 's3': {'s3SchemaVersion': '1.0', 'configurationId': 'OTI4OTEyNTktN2Y5OC00MDhhLTg5NDMtMmZjYWU2ZDEyOWEy', 'bucket': {'name': 'dev-public-storage-440955376164', 'ownerIdentity': {'principalId': 'A1N7AZ0AQHW4H'}, 'arn': 'arn:aws:s3:::dev-public-storage-440955376164'}, 'object': {'key': 'merge_queue/vaultdb/master/dev/load.sql', 'size': 270, 'eTag': '492b10a9a06f9e1547f5e1897a9f45fa-1', 'sequencer': '006621A153C7FC847A'}}}]}
     context = {'identity': {'cognito_identity_id':'', 'cognito_identity_pool_id':''}}
     lambda_handler([""], context)
     #lambda_handler(event, context)
