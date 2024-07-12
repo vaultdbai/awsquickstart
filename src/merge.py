@@ -113,6 +113,8 @@ def merge_database(source_bucket, file_key, preferred_role, database_name, db_pa
 
         if counter:
             connection.execute(f"PRAGMA enable_data_inheritance;")
+            connection.execute(f"SET s3_uploader_thread_limit = 5;")
+            connection.execute(f"set http_retries=6;")            
             connection.execute(f"MERGE DATABASE {database_name};")
             logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
             logger.debug('merge executed')
