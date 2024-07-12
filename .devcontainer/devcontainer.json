@@ -1,6 +1,6 @@
 {
 	"name": "VaultDB-QuickStart",
-	"dockerComposeFile": "docker-compose.yml",
+	"dockerComposeFile": "docker-compose-lambda.yml",
 	"service": "quickstart",
 	"workspaceFolder": "/workspace",
 	// Use this environment variable if you need to bind mount your local source code into a new container.
@@ -31,7 +31,7 @@
 	//"forwardPorts": [3000, 80, 8080, 9042],
 
 	// Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
-	"remoteUser": "vaultdb",
+	//"remoteUser": "vaultdb",
 
 	// Use 'postCreateCommand' to run commands after the container is created.
 	"postCreateCommand": "pip install -r /workspace/sample/python/requirements.txt"

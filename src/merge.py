@@ -50,17 +50,10 @@ def force_merge(preferred_role="vaultdb"):
                         for database_prefix in database_page["CommonPrefixes"]:
                             file_key = database_prefix["Prefix"][:-1]  # Remove trailing slash
                             database_name = file_key.split('/')[-1]  # Remove trailing slash                            
-                            db_path = f"{commitlog_directory}/{database_name}.db"                            
                             logger.debug(f'file_key: {file_key}')
-                            logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
-                            if not os.path.isfile(db_path):
-                                import vaultdb
-                                vaultdb.clone("vaultdb","test123", database_name, path=commitlog_directory, aws_region="us-east-1")
-                                #return send_response(event, context, cfnresponse.FAILED, {'error':f"Catalog {database_name} does not exist!"})
-                            
-                            logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
-                            merge_database(public_bucket, f"{file_key}/load.sql", preferred_role, database_name, db_path)
-                            logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
+                            logger.debug(f"Before Merge start Memory used: {tracemalloc.get_traced_memory()}")                            
+                            merge_database(public_bucket, f"{file_key}/load.sql", preferred_role, database_name, f"{commitlog_directory}/{database_name}.db")
+                            logger.debug(f"After Merge Done Memory used: {tracemalloc.get_traced_memory()}")                            
                             
     return send_response(event, context, cfnresponse.SUCCESS, {'result':'success'})
 
@@ -135,7 +128,7 @@ def merge_database(source_bucket, file_key, preferred_role, database_name, db_pa
                         }
                     logger.info(f'copy_source: {copy_source}')
                     logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
-                    s3_client.copy(copy_source, source_bucket, f"archived/{key[ 'Key' ]}", ExtraArgs=None, Callback=None, SourceClient=None, Config=None)
+                    s3_client.copy(copy_source, data_store, f"archived/{key[ 'Key' ]}", ExtraArgs=None, Callback=None, SourceClient=None, Config=None)
                     logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
                     del_response = s3_client.delete_object(Bucket=source_bucket, Key=key[ "Key" ])
                     if del_response["ResponseMetadata"]["HTTPStatusCode"]!=204:
