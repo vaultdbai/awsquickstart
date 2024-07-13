@@ -17,7 +17,34 @@ commitlog_directory = os.environ['commitlog_directory'] if "commitlog_directory"
 public_bucket = os.environ['public_bucket'] if "public_bucket" in os.environ else None
 data_store = os.environ['data_store'] if "data_store" in os.environ else None
 app_client_id = os.environ['user_pool_client_id'] if "user_pool_client_id" in os.environ else None
+memory_limit = os.environ['memory_limit'] if "memory_limit" in os.environ else '2GB'
 
+
+def lambda_handler(event, context):
+    logger.info(f'event: {event}')
+    try:
+        if 'Records' in event:
+            for record in event['Records']:
+                source_bucket = record['s3']['bucket']['name']
+                logger.info(f'source_bucket: {source_bucket}')
+                file_key = record['s3']['object']['key']
+                logger.info(f'file_key: {file_key}')
+                preferred_role = file_key.split('/')[-4]    
+                logger.info(f'preferred_role: {preferred_role}')
+                database_name = file_key.split('/')[-2]
+                logger.info(f'database_name: {database_name}')
+                db_path = f"{commitlog_directory}/{database_name}.db"
+
+                if not os.path.isfile(db_path):
+                    return send_response(event, context, cfnresponse.FAILED, {'error':f"Catalog {database_name} does not exist!"})
+                
+                merge_database(source_bucket, file_key, preferred_role, database_name, db_path)
+        else:
+            return force_merge()
+
+    except Exception as ex:
+        logger.error(ex)
+        return send_response(event, context, cfnresponse.FAILED, {'error':str(ex)})
 
 def force_merge(preferred_role="vaultdb"):
     # starting the monitoring
@@ -57,32 +84,6 @@ def force_merge(preferred_role="vaultdb"):
                             
     return send_response(event, context, cfnresponse.SUCCESS, {'result':'success'})
 
-def lambda_handler(event, context):
-    logger.info(f'event: {event}')
-    try:
-        if 'Records' in event:
-            for record in event['Records']:
-                source_bucket = record['s3']['bucket']['name']
-                logger.info(f'source_bucket: {source_bucket}')
-                file_key = record['s3']['object']['key']
-                logger.info(f'file_key: {file_key}')
-                preferred_role = file_key.split('/')[-4]    
-                logger.info(f'preferred_role: {preferred_role}')
-                database_name = file_key.split('/')[-2]
-                logger.info(f'database_name: {database_name}')
-                db_path = f"{commitlog_directory}/{database_name}.db"
-
-                if not os.path.isfile(db_path):
-                    return send_response(event, context, cfnresponse.FAILED, {'error':f"Catalog {database_name} does not exist!"})
-                
-                merge_database(source_bucket, file_key, preferred_role, database_name, db_path)
-        else:
-            return force_merge()
-
-    except Exception as ex:
-        logger.error(ex)
-        return send_response(event, context, cfnresponse.FAILED, {'error':str(ex)})
-
 def merge_database(source_bucket, file_key, preferred_role, database_name, db_path):
 
     logger.debug(f'source_bucket: {source_bucket}')
@@ -96,7 +97,7 @@ def merge_database(source_bucket, file_key, preferred_role, database_name, db_pa
     logger.debug('connection opened')
     
     try:
-        connection.execute(f"SET memory_limit='2GB';")                    
+        connection.execute(f"SET memory_limit='{memory_limit}';")                    
         # Create a Boto3 S3 client
         s3_client = boto3.client('s3')        
         counter = execute(s3_client, source_bucket, file_key.replace("load.sql", "schema.sql"), connection)

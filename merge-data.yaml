@@ -33,13 +33,14 @@ Resources:
           - merge.lambda_handler
       Architectures:
         - x86_64
-      MemorySize: 256
-      Timeout: 120
+      MemorySize: 3007
+      Timeout: 300
       Environment:
         Variables:
           application_name: !Sub "${ApplicationName}"
           AWS_STS_REGIONAL_ENDPOINTS: "regional"
           commitlog_directory: "/mnt/commitlog"
+          memory_limit: "2GB"
           HOME: "/mnt/commitlog"
           public_bucket:
             Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"

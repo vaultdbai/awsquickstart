@@ -16,6 +16,7 @@ application_name = os.environ['application_name'] if "application_name" in os.en
 commitlog_directory = os.environ['commitlog_directory'] if "commitlog_directory" in os.environ else "/tmp"
 public_bucket = os.environ['public_bucket'] if "public_bucket" in os.environ else None
 data_store = os.environ['data_store'] if "data_store" in os.environ else None
+memory_limit = os.environ['memory_limit'] if "memory_limit" in os.environ else '200MB'
 
 def get_keys():
     from datetime import datetime
@@ -72,6 +73,7 @@ def lambda_handler(event, context):
         test_db_path = f"{commitlog_directory}/{catalog}.db"
         if os.path.isfile(test_db_path):
             connection = duckdb.connect(f"{commitlog_directory}/{catalog}.db", True, role=preferred_role)
+            connection.execute(f"SET memory_limit='{memory_limit}';")                                
             if payload.strip():
                 connection.execute(f"PRAGMA enable_data_inheritance;")
                 df = connection.execute(payload).fetchdf()
