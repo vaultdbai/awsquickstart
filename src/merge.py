@@ -18,7 +18,7 @@ public_bucket = os.environ['public_bucket'] if "public_bucket" in os.environ els
 data_store = os.environ['data_store'] if "data_store" in os.environ else None
 app_client_id = os.environ['user_pool_client_id'] if "user_pool_client_id" in os.environ else None
 memory_limit = os.environ['memory_limit'] if "memory_limit" in os.environ else '2GB'
-
+threads = os.environ['threads'] if "threads" in os.environ else '3'
 
 def lambda_handler(event, context):
     logger.info(f'event: {event}')
@@ -97,7 +97,10 @@ def merge_database(source_bucket, file_key, preferred_role, database_name, db_pa
     logger.debug('connection opened')
     
     try:
-        connection.execute(f"SET memory_limit='{memory_limit}';")                    
+        connection.execute(f"SET memory_limit='{memory_limit}';")   
+        connection.execute(f"SET threads='{threads}';")   
+        connection.execute(f"SET temp_directory='/tmp';")   
+                         
         # Create a Boto3 S3 client
         s3_client = boto3.client('s3')        
         counter = execute(s3_client, source_bucket, file_key.replace("load.sql", "schema.sql"), connection)
@@ -108,9 +111,9 @@ def merge_database(source_bucket, file_key, preferred_role, database_name, db_pa
 
         if counter:
             connection.execute(f"PRAGMA enable_data_inheritance;")
-            connection.execute(f"SET s3_uploader_thread_limit = 5;")
-            connection.execute(f"set http_retries=6;")
-            connection.execute(f"set http_timeout=120000;")                 
+            #connection.execute(f"SET s3_uploader_thread_limit = 5;")
+            connection.execute(f"set http_retries=3;")
+            #connection.execute(f"set http_timeout=120000;")                 
             logger.debug(f"Starting Merge database process: {tracemalloc.get_traced_memory()}")                            
             connection.execute(f"MERGE DATABASE {database_name};")
             logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
