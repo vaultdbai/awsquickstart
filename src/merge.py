@@ -96,6 +96,7 @@ def merge_database(source_bucket, file_key, preferred_role, database_name, db_pa
     logger.debug('connection opened')
     
     try:
+        connection.execute(f"SET memory_limit='2GB';")                    
         # Create a Boto3 S3 client
         s3_client = boto3.client('s3')        
         counter = execute(s3_client, source_bucket, file_key.replace("load.sql", "schema.sql"), connection)
@@ -107,7 +108,9 @@ def merge_database(source_bucket, file_key, preferred_role, database_name, db_pa
         if counter:
             connection.execute(f"PRAGMA enable_data_inheritance;")
             connection.execute(f"SET s3_uploader_thread_limit = 5;")
-            connection.execute(f"set http_retries=6;")            
+            connection.execute(f"set http_retries=6;")
+            connection.execute(f"set http_timeout=120000;")                 
+            logger.debug(f"Starting Merge database process: {tracemalloc.get_traced_memory()}")                            
             connection.execute(f"MERGE DATABASE {database_name};")
             logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
             logger.debug('merge executed')
