@@ -5,6 +5,9 @@ import logging
 import json
 import duckdb
 import boto3
+from typing import Any, Dict, Optional
+from botocore.client import BaseClient
+from duckdb import DuckDBPyConnection
 
 import tracemalloc
 
@@ -84,91 +87,47 @@ def force_merge(preferred_role="vaultdb"):
                             
     return send_response(event, context, cfnresponse.SUCCESS, {'result':'success'})
 
-def merge_database(source_bucket, file_key, preferred_role, database_name, db_path):
-
-    logger.debug(f'source_bucket: {source_bucket}')
-    logger.debug(f'file_key: {file_key}')
-    logger.debug(f'preferred_role: {preferred_role}')
-    logger.debug(f'database_name: {database_name}')
-    logger.debug(f'db_path: {db_path}')
-
-    # connect to database
-    connection = duckdb.connect(db_path, False, config={'autoinstall_known_extensions' : 'true'}, role=preferred_role)
-    logger.debug('connection opened')
-    
+def merge_database(source_bucket: str, file_key: str, preferred_role: str, database_name: str, db_path: str) -> None:
     try:
-        connection.execute(f"SET memory_limit='{memory_limit}';")   
-        connection.execute(f"SET threads='{threads}';")   
-        connection.execute(f"SET temp_directory='/tmp';")   
-                         
-        # Create a Boto3 S3 client
-        s3_client = boto3.client('s3')        
-        counter = execute(s3_client, source_bucket, file_key.replace("load.sql", "schema.sql"), connection)
-        logger.debug('schema executed')
-        
-        counter = execute(s3_client, source_bucket, file_key, connection)
-        logger.debug('load executed')
-
-        if counter:
-            connection.execute(f"PRAGMA enable_data_inheritance;")
-            #connection.execute(f"SET s3_uploader_thread_limit = 5;")
-            connection.execute(f"set http_retries=3;")
-            #connection.execute(f"set http_timeout=120000;")                 
-            logger.debug(f"Starting Merge database process: {tracemalloc.get_traced_memory()}")                            
-            connection.execute(f"MERGE DATABASE {database_name};")
-            logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
-            logger.debug('merge executed')
-            connection.execute(f"TRUNCATE DATABASE {database_name};")
-            logger.debug('data truncated')
-            logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
+        with get_db_connection(db_path, preferred_role) as connection:
+            set_db_config(connection)
+            s3_client: BaseClient = boto3.client('s3')
             
-        head, tail = os.path.split(file_key)
-        logger.info(f'head: {head}')
-        paginator = s3_client.get_paginator('list_objects_v2')
-        result = paginator.paginate(Bucket=source_bucket, Prefix=head)
-        for page in result:
-            if "Contents" in page:
-                for key in page[ "Contents" ]:
-                    copy_source = {
-                        'Bucket': source_bucket,
-                        'Key': key[ "Key" ]
-                        }
-                    logger.info(f'copy_source: {copy_source}')
-                    logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
-                    s3_client.copy(copy_source, data_store, f"archived/{key[ 'Key' ]}", ExtraArgs=None, Callback=None, SourceClient=None, Config=None)
-                    logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
-                    del_response = s3_client.delete_object(Bucket=source_bucket, Key=key[ "Key" ])
-                    if del_response["ResponseMetadata"]["HTTPStatusCode"]!=204:
-                        logger.error(f'del_response: {del_response}')
-                        #return send_response(event, context, cfnresponse.FAILED, {'error':f"couldn't archive file {key[ 'Key' ]}"})     
-        logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
-        connection.close()
-        # CLose and reopen to make sure we are not carying data to s3
-        connection = duckdb.connect(db_path, False, role=preferred_role)   
-        connection.close()
-        logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
-        s3 = boto3.resource("s3")
-        s3.meta.client.upload_file(Filename=db_path, Bucket=public_bucket, Key=f"catalogs/{database_name}.db")
-        logger.debug(f'copied {database_name} database file to s3 ')            
-        logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
+            execute_schema(s3_client, source_bucket, file_key, connection)
+            execute_load(s3_client, source_bucket, file_key, connection)
+            
+            perform_merge(connection, database_name)
+            
+        archive_and_cleanup(s3_client, source_bucket, file_key)
+        upload_to_s3(db_path, database_name)
+        
     except Exception as ex:
-        logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
-        logger.error(ex)
+        logger.error(f"Error in merge_database: {ex}")
         raise
-                                               
-def execute(s3_client, source_bucket, file_key, connection):
-    # Retrieve the object from S3
-    response = s3_client.get_object(Bucket=source_bucket, Key=file_key)            
-    # Read the file content line by line
-    file_content = response['Body'].iter_lines()
-    if not file_content:
-        return send_response(event, context, cfnresponse.FAILED, {'error':"empty file contents!"})
 
-    connection.execute(f"PRAGMA disable_data_inheritance;")
-    # Process each line of the file
-    counter = 0
+def get_db_connection(db_path: str, role: str) -> DuckDBPyConnection:
+    return duckdb.connect(db_path, False, config={'autoinstall_known_extensions': 'true'}, role=role)
+
+def set_db_config(connection: DuckDBPyConnection) -> None:
+    connection.execute(f"SET memory_limit='{memory_limit}';")
+    connection.execute(f"SET threads='{threads}';")
+    connection.execute(f"SET temp_directory='/tmp';")
+
+def execute_schema(s3_client: BaseClient, source_bucket: str, file_key: str, connection: DuckDBPyConnection) -> None:
+    schema_key = file_key.replace("load.sql", "schema.sql")
+    execute_sql_from_s3(s3_client, source_bucket, schema_key, connection)
+    logger.debug('schema executed')
+
+def execute_load(s3_client: BaseClient, source_bucket: str, file_key: str, connection: DuckDBPyConnection) -> None:
+    execute_sql_from_s3(s3_client, source_bucket, file_key, connection)
+    logger.debug('load executed')
+
+def execute_sql_from_s3(s3_client: BaseClient, bucket: str, key: str, connection: DuckDBPyConnection) -> int:
+    response: Dict[str, Any] = s3_client.get_object(Bucket=bucket, Key=key)
+    file_content: Any = response['Body'].iter_lines()
+    counter: int = 0
     for line in file_content:
-        stmt = line.decode('utf-8').strip()
+        stmt: str = line.decode('utf-8').strip()
         if stmt:
             logger.info(f'Executing Statement: {line}')             
             if ("CREATE SCHEMA" in stmt and "IF NOT EXISTS" not in stmt and "ON CONFLICT" not in stmt):
@@ -180,6 +139,43 @@ def execute(s3_client, source_bucket, file_key, connection):
             logger.info(f'Statement Result: {stmt_result.fetchdf()}')    
 
     return counter
+
+def perform_merge(connection: DuckDBPyConnection, database_name: str) -> None:
+    connection.execute(f"PRAGMA enable_data_inheritance;")
+    connection.execute(f"set http_retries=3;")
+    logger.debug(f"Starting Merge database process: {tracemalloc.get_traced_memory()}")
+    connection.execute(f"MERGE DATABASE {database_name};")
+    logger.debug('merge executed')
+    connection.execute(f"TRUNCATE DATABASE {database_name};")
+    logger.debug('data truncated')
+
+def archive_and_cleanup(s3_client: BaseClient, source_bucket: str, file_key: str) -> None:
+    head, tail = os.path.split(file_key)
+    logger.info(f'head: {head}')
+    paginator = s3_client.get_paginator('list_objects_v2')
+    result = paginator.paginate(Bucket=source_bucket, Prefix=head)
+    for page in result:
+        if "Contents" in page:
+            for key in page[ "Contents" ]:
+                copy_source = {
+                    'Bucket': source_bucket,
+                    'Key': key[ "Key" ]
+                    }
+                logger.info(f'copy_source: {copy_source}')
+                logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
+                s3_client.copy(copy_source, data_store, f"archived/{key[ 'Key' ]}", ExtraArgs=None, Callback=None, SourceClient=None, Config=None)
+                logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
+                del_response = s3_client.delete_object(Bucket=source_bucket, Key=key[ "Key" ])
+                if del_response["ResponseMetadata"]["HTTPStatusCode"]!=204:
+                    logger.error(f'del_response: {del_response}')
+                    #return send_response(event, context, cfnresponse.FAILED, {'error':f"couldn't archive file {key[ 'Key' ]}"})     
+    logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
+
+def upload_to_s3(db_path: str, database_name: str) -> None:
+    s3 = boto3.resource("s3")
+    s3.meta.client.upload_file(Filename=db_path, Bucket=public_bucket, Key=f"catalogs/{database_name}.db")
+    logger.debug(f'copied {database_name} database file to s3 ')            
+    logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")                            
 
 def send_response(event, context, result, message):
     if "ResponseURL" in event:
