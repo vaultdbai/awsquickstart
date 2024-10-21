@@ -153,6 +153,7 @@ Resources:
                   - cognito-idp:CreateUserPool
                   - cognito-idp:CreateUserPoolClient
                   - cognito-idp:CreateGroup
+                  - cognito-idp:GetGroup
                   - cognito-idp:AdminConfirmSignUp
                   - cognito-idp:AdminInitiateAuth
                   - cognito-idp:AdminCreateUser
