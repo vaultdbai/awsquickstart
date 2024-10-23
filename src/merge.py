@@ -146,7 +146,9 @@ def perform_merge(connection: DuckDBPyConnection, database_name: str) -> None:
     logger.debug(f"Starting Merge database process: {tracemalloc.get_traced_memory()}")
     connection.execute(f"MERGE DATABASE {database_name};")
     logger.debug('merge executed')
+    connection.execute('BEGIN TRANSACTION;')
     connection.execute(f"TRUNCATE DATABASE {database_name};")
+    connection.execute('COMMIT;')
     logger.debug('data truncated')
 
 def archive_and_cleanup(s3_client: BaseClient, source_bucket: str, file_key: str) -> None:
