@@ -149,6 +149,7 @@ def perform_merge(connection: DuckDBPyConnection, database_name: str) -> None:
     connection.execute('BEGIN TRANSACTION;')
     connection.execute(f"TRUNCATE DATABASE {database_name};")
     connection.execute('COMMIT;')
+    connection.execute('VACUUM ANALYZE;')    
     logger.debug('data truncated')
 
 def archive_and_cleanup(s3_client: BaseClient, source_bucket: str, file_key: str) -> None:
