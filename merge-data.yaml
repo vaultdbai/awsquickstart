@@ -42,6 +42,7 @@ Resources:
           commitlog_directory: "/mnt/commitlog"
           memory_limit: "2GB"
           HOME: "/mnt/commitlog"
+          account_id: !Sub ${AWS::AccountId}
           public_bucket:
             Fn::ImportValue: !Sub "${ApplicationName}-PublicBucket"
           data_store:

@@ -15,17 +15,21 @@ import tracemalloc
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG) # Very verbose
 
-application_name = os.environ['application_name'] if "application_name" in os.environ else ""
+application_name = os.environ['application_name'] if "application_name" in os.environ else "test"
+account_id = os.environ['account_id'] if "account_id" in os.environ else "440955376164"
 commitlog_directory = os.environ['commitlog_directory'] if "commitlog_directory" in os.environ else "/tmp"
 public_bucket = os.environ['public_bucket'] if "public_bucket" in os.environ else None
 data_store = os.environ['data_store'] if "data_store" in os.environ else None
 app_client_id = os.environ['user_pool_client_id'] if "user_pool_client_id" in os.environ else None
 memory_limit = os.environ['memory_limit'] if "memory_limit" in os.environ else '2GB'
 threads = os.environ['threads'] if "threads" in os.environ else '3'
-
+AWS_DEFAULT_REGION =  os.environ['AWS_DEFAULT_REGION'] if "AWS_DEFAULT_REGION" in os.environ else f'us-east-1'
+AWS_LAMBDA_FUNCTION_NAME =  os.environ['AWS_LAMBDA_FUNCTION_NAME'] if "AWS_LAMBDA_FUNCTION_NAME" in os.environ else f'{application_name}-merge-data'
+ 
 def lambda_handler(event, context):
     logger.info(f'event: {event}')
     try:
+        delete_notification(public_bucket)
         if 'Records' in event:
             for record in event['Records']:
                 source_bucket = record['s3']['bucket']['name']
@@ -38,18 +42,17 @@ def lambda_handler(event, context):
                 logger.info(f'database_name: {database_name}')
                 db_path = f"{commitlog_directory}/{database_name}.db"
 
-                if not os.path.isfile(db_path):
-                    return send_response(event, context, cfnresponse.FAILED, {'error':f"Catalog {database_name} does not exist!"})
-                
                 merge_database(source_bucket, file_key, preferred_role, database_name, db_path)
-        else:
-            return force_merge()
 
+        return force_merge()        
     except Exception as ex:
         logger.error(ex)
         return send_response(event, context, cfnresponse.FAILED, {'error':str(ex)})
+    finally:
+        LambdaArn = f"arn:aws:lambda:{AWS_DEFAULT_REGION}:{account_id}:function:{AWS_LAMBDA_FUNCTION_NAME}" 
+        add_notification(LambdaArn, public_bucket)        
 
-def force_merge(preferred_role="vaultdb"):
+def force_merge():
     # starting the monitoring
     tracemalloc.start()
     logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")
@@ -60,8 +63,7 @@ def force_merge(preferred_role="vaultdb"):
     paginator = s3_client.get_paginator("list_objects_v2")
     page_iterator = paginator.paginate(
         Bucket=public_bucket, Prefix="merge_queue/", Delimiter="/"
-    )
-
+    )    
     for page in page_iterator:
         # Check if 'CommonPrefixes' key exists, indicating folders
         if "CommonPrefixes" in page:
@@ -70,20 +72,30 @@ def force_merge(preferred_role="vaultdb"):
                 logger.debug(f'folder: {folder_name}')
                 logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")
                 
-                # Define the payload to send to the target Lambda (optional)
-                database_paginator = s3_client.get_paginator("list_objects_v2")
-                database_page_iterator = database_paginator.paginate(
-                    Bucket=public_bucket, Prefix=f"{folder_name}/{preferred_role}/master/", Delimiter="/"
+                role_paginator = s3_client.get_paginator("list_objects_v2")
+                role_page_iterator = role_paginator.paginate(
+                    Bucket=public_bucket, Prefix=f"{folder_name}/", Delimiter="/"
                 )
-                for database_page in database_page_iterator:                
-                    if "CommonPrefixes" in database_page:
-                        for database_prefix in database_page["CommonPrefixes"]:
-                            file_key = database_prefix["Prefix"][:-1]  # Remove trailing slash
-                            database_name = file_key.split('/')[-1]  # Remove trailing slash                            
-                            logger.debug(f'file_key: {file_key}')
-                            logger.debug(f"Before Merge start Memory used: {tracemalloc.get_traced_memory()}")                            
-                            merge_database(public_bucket, f"{file_key}/load.sql", preferred_role, database_name, f"{commitlog_directory}/{database_name}.db")
-                            logger.debug(f"After Merge Done Memory used: {tracemalloc.get_traced_memory()}")                            
+                for role_page in role_page_iterator:
+                    if "CommonPrefixes" in role_page:
+                        for role_prefix in role_page["CommonPrefixes"]:
+                            role_key = role_prefix["Prefix"][:-1]  # Remove trailing slash
+                            preferred_role = role_key.split('/')[-1]  # Remove trailing slash                            
+
+                            # Define the payload to send to the target Lambda (optional)
+                            database_paginator = s3_client.get_paginator("list_objects_v2")
+                            database_page_iterator = database_paginator.paginate(
+                                Bucket=public_bucket, Prefix=f"{folder_name}/{preferred_role}/master/", Delimiter="/"
+                            )
+                            for database_page in database_page_iterator:                
+                                if "CommonPrefixes" in database_page:
+                                    for database_prefix in database_page["CommonPrefixes"]:
+                                        file_key = database_prefix["Prefix"][:-1]  # Remove trailing slash
+                                        database_name = file_key.split('/')[-1]  # Remove trailing slash                            
+                                        logger.debug(f'file_key: {file_key}')
+                                        logger.debug(f"Before Merge start Memory used: {tracemalloc.get_traced_memory()}")                            
+                                        merge_database(public_bucket, f"{file_key}/load.sql", preferred_role, database_name, f"{commitlog_directory}/{database_name}.db")
+                                        logger.debug(f"After Merge Done Memory used: {tracemalloc.get_traced_memory()}")                            
                             
     return send_response(event, context, cfnresponse.SUCCESS, {'result':'success'})
 
@@ -187,6 +199,47 @@ def send_response(event, context, result, message):
         return {"result":"Error", "message":message}
     else:
         return {"result":"Success", "message":message}
+
+def add_notification(LambdaArn, public_bucket):
+    try:
+        s3 = boto3.resource("s3")
+        bucket_notification = s3.BucketNotification(public_bucket)
+        response = bucket_notification.put(
+            NotificationConfiguration={
+                "LambdaFunctionConfigurations": [
+                    {
+                        "LambdaFunctionArn": LambdaArn,
+                        "Events": ["s3:ObjectCreated:*"],
+                        "Filter": {
+                            "Key": {
+                                "FilterRules": [
+                                    {"Name": "prefix", "Value": "merge_queue"},
+                                    {"Name": "suffix", "Value": "load.sql"},
+                                ]
+                            }
+                        },
+                    }
+                ]
+            }
+        )
+        logger.info(response)
+    except Exception as error:
+        logger.error("There was an error add_notification to the  bucket")
+        logger.error("Error Message: {}".format(error))
+        logger.error("Error response: {}".format(error.response))
+
+
+def delete_notification(public_bucket):
+    try:
+        s3 = boto3.resource("s3")
+        bucket_notification = s3.BucketNotification(public_bucket)
+        response = bucket_notification.put(NotificationConfiguration={})
+        logger.info(response)
+    except Exception as error:
+        logger.error("There was an error delete_notification to the  bucket")
+        logger.error("Error Message: {}".format(error))
+        logger.error("Error response: {}".format(error.response))
+
 
 # the following is useful to make this script executable in both
 # AWS Lambda and any other local environments
