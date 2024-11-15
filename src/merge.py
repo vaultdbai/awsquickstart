@@ -3,6 +3,7 @@ import os
 import cfnresponse
 import logging
 import json
+import datetime
 import duckdb
 import boto3
 from typing import Any, Dict, Optional
@@ -21,7 +22,8 @@ commitlog_directory = os.environ['commitlog_directory'] if "commitlog_directory"
 public_bucket = os.environ['public_bucket'] if "public_bucket" in os.environ else None
 data_store = os.environ['data_store'] if "data_store" in os.environ else None
 app_client_id = os.environ['user_pool_client_id'] if "user_pool_client_id" in os.environ else None
-memory_limit = os.environ['memory_limit'] if "memory_limit" in os.environ else '2GB'
+memory_limit = int(os.environ['memory_limit']) if "memory_limit" in os.environ else 2048
+TIMEOUT_SECONDS =  int(os.environ['TIMEOUT_SECONDS'])-10 if "TIMEOUT_SECONDS" in os.environ else 290
 threads = os.environ['threads'] if "threads" in os.environ else '3'
 AWS_DEFAULT_REGION =  os.environ['AWS_DEFAULT_REGION'] if "AWS_DEFAULT_REGION" in os.environ else f'us-east-1'
 AWS_LAMBDA_FUNCTION_NAME =  os.environ['AWS_LAMBDA_FUNCTION_NAME'] if "AWS_LAMBDA_FUNCTION_NAME" in os.environ else f'{application_name}-merge-data'
@@ -54,6 +56,7 @@ def lambda_handler(event, context):
 
 def force_merge():
     # starting the monitoring
+    start = datetime.datetime.now()
     tracemalloc.start()
     logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")
     # Create an S3 client
@@ -95,7 +98,10 @@ def force_merge():
                                         logger.debug(f'file_key: {file_key}')
                                         logger.debug(f"Before Merge start Memory used: {tracemalloc.get_traced_memory()}")                            
                                         merge_database(public_bucket, f"{file_key}/load.sql", preferred_role, database_name, f"{commitlog_directory}/{database_name}.db")
-                                        logger.debug(f"After Merge Done Memory used: {tracemalloc.get_traced_memory()}")                            
+                                        logger.debug(f"After Merge Done Memory used: {tracemalloc.get_traced_memory()}") 
+                                        finish = datetime.datetime.now() - start
+                                        if finish.seconds >= TIMEOUT_SECONDS:
+                                            return send_response(event, context, cfnresponse.SUCCESS, {'result':'success'})
                             
     return send_response(event, context, cfnresponse.SUCCESS, {'result':'success'})
 
@@ -121,7 +127,7 @@ def get_db_connection(db_path: str, role: str) -> DuckDBPyConnection:
     return duckdb.connect(db_path, False, config={'autoinstall_known_extensions': 'true'}, role=role)
 
 def set_db_config(connection: DuckDBPyConnection) -> None:
-    connection.execute(f"SET memory_limit='{memory_limit}';")
+    connection.execute(f"SET memory_limit='{int(memory_limit/1024)}GB';")
     connection.execute(f"SET threads='{threads}';")
     connection.execute(f"SET temp_directory='/tmp';")
 

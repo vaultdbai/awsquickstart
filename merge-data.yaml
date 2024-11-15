@@ -10,6 +10,15 @@ Parameters:
     AllowedPattern: "^[a-z][a-z0-9-]{0,48}[a-z0-9]$"
     Description: Enter the name of your application with no spaces.
 
+  MergeTimeout:
+    Type: Number
+    Default: 300
+    Description: Enter the merge lambda timeout in seconds.
+
+  MemoryLimit:
+    Type: Number
+    Default: 2048
+
 Resources:
   MergeDataFunction:
     Type: AWS::Lambda::Function
@@ -33,14 +42,15 @@ Resources:
           - merge.lambda_handler
       Architectures:
         - x86_64
-      MemorySize: 3007
-      Timeout: 300
+      MemorySize: !Ref MemoryLimit
+      Timeout: !Ref MergeTimeout
       Environment:
         Variables:
           application_name: !Sub "${ApplicationName}"
+          TIMEOUT_SECONDS: !Ref MergeTimeout
           AWS_STS_REGIONAL_ENDPOINTS: "regional"
           commitlog_directory: "/mnt/commitlog"
-          memory_limit: "2GB"
+          memory_limit: !Ref MemoryLimit
           HOME: "/mnt/commitlog"
           account_id: !Sub ${AWS::AccountId}
           public_bucket:
