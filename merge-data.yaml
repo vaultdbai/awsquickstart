@@ -12,12 +12,17 @@ Parameters:
 
   MergeTimeout:
     Type: Number
-    Default: 300
+    Default: 900
     Description: Enter the merge lambda timeout in seconds.
 
   MemoryLimit:
     Type: Number
     Default: 2048
+
+  AutoMergeScheduleExpression:
+    Type: String
+    Default: "cron(0 17 * * ? *)" 
+    Description: Enter the Merge lambda automatic run Schedule Expression. Default Runs every day at 5 PM UTC
 
 Resources:
   MergeDataFunction:
@@ -86,12 +91,12 @@ Resources:
     Type: AWS::Events::Rule
     Properties:
       Description: "Scheduled data merge Runs"
-      ScheduleExpression: "cron(0 17 * * ? *)" # Runs every day at 5 PM UTC
-      State: "DISABLED"
+      ScheduleExpression: !Ref AutoMergeScheduleExpression
+      State: "ENABLED"
       Targets:
         - Arn: !GetAtt MergeDataFunction.Arn
           Id: "UpdateKeysWeekly"
-          Input: '{"RequestType":  "Refresh"}'
+          Input: '{"RequestType":  "ForceMerge"}'
 
   PermissionForEventsToInvokeMergeLambda:
     Type: AWS::Lambda::Permission
