@@ -23,11 +23,13 @@ public_bucket = os.environ['public_bucket'] if "public_bucket" in os.environ els
 data_store = os.environ['data_store'] if "data_store" in os.environ else None
 app_client_id = os.environ['user_pool_client_id'] if "user_pool_client_id" in os.environ else None
 memory_limit = int(os.environ['memory_limit']) if "memory_limit" in os.environ else 2048
-TIMEOUT_SECONDS =  int(os.environ['TIMEOUT_SECONDS'])-10 if "TIMEOUT_SECONDS" in os.environ else 290
+TIMEOUT_SECONDS =  int(os.environ['TIMEOUT_SECONDS']) - 30 if "TIMEOUT_SECONDS" in os.environ else 290
 threads = os.environ['threads'] if "threads" in os.environ else '3'
 AWS_DEFAULT_REGION =  os.environ['AWS_DEFAULT_REGION'] if "AWS_DEFAULT_REGION" in os.environ else f'us-east-1'
 AWS_LAMBDA_FUNCTION_NAME =  os.environ['AWS_LAMBDA_FUNCTION_NAME'] if "AWS_LAMBDA_FUNCTION_NAME" in os.environ else f'{application_name}-merge-data'
- 
+
+START_TIME = datetime.datetime.now()
+
 def lambda_handler(event, context):
     logger.info(f'event: {event}')
     try:
@@ -56,7 +58,7 @@ def lambda_handler(event, context):
 
 def force_merge():
     # starting the monitoring
-    start = datetime.datetime.now()
+    logger.debug(f'TIMEOUT IN SECONDS: {TIMEOUT_SECONDS}')
     tracemalloc.start()
     logger.debug(f"Memory used: {tracemalloc.get_traced_memory()}")
     # Create an S3 client
@@ -99,7 +101,8 @@ def force_merge():
                                         logger.debug(f"Before Merge start Memory used: {tracemalloc.get_traced_memory()}")                            
                                         merge_database(public_bucket, f"{file_key}/load.sql", preferred_role, database_name, f"{commitlog_directory}/{database_name}.db")
                                         logger.debug(f"After Merge Done Memory used: {tracemalloc.get_traced_memory()}") 
-                                        finish = datetime.datetime.now() - start
+                                        finish = datetime.datetime.now() - START_TIME
+                                        logger.debug(f'number of seconds elapsed: {finish.seconds}')
                                         if finish.seconds >= TIMEOUT_SECONDS:
                                             return send_response(event, context, cfnresponse.SUCCESS, {'result':'success'})
                             
