@@ -118,10 +118,9 @@ def merge_database(source_bucket: str, file_key: str, preferred_role: str, datab
             execute_load(s3_client, source_bucket, file_key, connection)
             
             perform_merge(connection, database_name)
-            
+            connection.close()            
         archive_and_cleanup(s3_client, source_bucket, file_key)
-        upload_to_s3(db_path, database_name)
-        
+        upload_to_s3(db_path, database_name)        
     except Exception as ex:
         logger.error(f"Error in merge_database: {ex}")
         raise
