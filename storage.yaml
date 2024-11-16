@@ -34,6 +34,19 @@ Resources:
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
               SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: DeleteArchivedContentsAfter7Days
+            Prefix: 'archived/'
+            Status: Enabled
+            ExpirationInDays: 7
+          # - Id: GlacierRule
+          #   Prefix: 'archived/'
+          #   Status: Disabled
+          #   ExpirationInDays: 7
+          #   Transitions:
+          #     - TransitionInDays: 1
+          #       StorageClass: GLACIER
 
   PublicBucket:
     Type: "AWS::S3::Bucket"
